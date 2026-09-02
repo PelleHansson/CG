@@ -4,7 +4,7 @@ target_sources (
        PUBLIC [[interpolation.hpp]]
        PRIVATE [[interpolation.cpp]]
 )
-target_link_libraries (interpolation PRIVATE CG_Labs_options glm)
+target_link_libraries (interpolation PRIVATE CG_Labs_options glm::glm)
 
 add_library (parametric_shapes STATIC)
 target_sources (

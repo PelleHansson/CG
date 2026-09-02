@@ -56,7 +56,7 @@ include (CMake/InstallGLFW.cmake)
 find_package (glfw3 ${LUGGCGL_GLFW_MIN_VERSION} REQUIRED)
 
 # GLM is used for matrices, vectors and camera handling
-set (LUGGCGL_GLM_DOWNLOAD_VERSION 0.9.9.5)
+set (LUGGCGL_GLM_DOWNLOAD_VERSION 1.0.3)
 include (CMake/InstallGLM.cmake)
 find_package (glm ${LUGGCGL_GLM_DOWNLOAD_VERSION} EXACT REQUIRED)
 

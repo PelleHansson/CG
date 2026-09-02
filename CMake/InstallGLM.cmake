@@ -6,11 +6,6 @@ if (NOT glm_FOUND)
         GIT_TAG "${LUGGCGL_GLM_DOWNLOAD_VERSION}"
         GIT_SHALLOW ON
         SOURCE_SUBDIR not-a-cmake-project
-
-        # GLM does not set its revision version in its number string,
-        # making it impossible to match on it.
-        PATCH_COMMAND ${GIT_EXECUTABLE} reset --hard HEAD # Remove any existing changes before applying the patch (in case patch is applied twice, for example)
-        COMMAND ${GIT_EXECUTABLE} apply ${CMAKE_SOURCE_DIR}/0001-Fix-GLM-version.patch
     )
 
     message (STATUS "Fetching glm sources…")
@@ -27,7 +22,8 @@ if (NOT glm_FOUND)
                                  -A "${CMAKE_GENERATOR_PLATFORM}"
                                  -DCMAKE_INSTALL_PREFIX=${glm_INSTALL_DIR}
                                  -DCMAKE_BUILD_TYPE=Release
-                                 -DGLM_TEST_ENABLE=OFF
+                                 -DGLM_BUILD_TESTS=OFF
+                                 -DGLM_BUILD_LIBRARY=OFF
                                  ${glm_SOURCE_DIR}
         OUTPUT_VARIABLE stdout
         ERROR_VARIABLE stderr
@@ -55,7 +51,7 @@ if (NOT glm_FOUND)
                              "Error output: ${stderr}")
     endif ()
 
-    list (APPEND CMAKE_PREFIX_PATH ${glm_INSTALL_DIR}/lib64/cmake)
+    list (APPEND CMAKE_PREFIX_PATH ${glm_INSTALL_DIR})
 
     set (glm_INSTALL_DIR)
 endif ()
