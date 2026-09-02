@@ -4,13 +4,11 @@ if (NOT tinyfiledialogs_FOUND)
 		tinyfiledialogs
 		GIT_REPOSITORY [[https://git.code.sf.net/p/tinyfiledialogs/code]]
 		GIT_TAG [[e11f94cd7887b101d64f74892d769f0139b5e166]]
+		SOURCE_SUBDIR not-a-cmake-project
 	)
 
-	FetchContent_GetProperties (tinyfiledialogs)
-	if (NOT tinyfiledialogs_POPULATED)
-		message (STATUS "Cloning tinyfiledialogs…")
-		FetchContent_Populate (tinyfiledialogs)
-	endif ()
+	message (STATUS "Fetching tinyfiledialogs sources…")
+	FetchContent_MakeAvailable (tinyfiledialogs)
 
 	add_library( tinyfiledialogs::tinyfiledialogs INTERFACE IMPORTED)
 	set_target_properties(tinyfiledialogs::tinyfiledialogs PROPERTIES

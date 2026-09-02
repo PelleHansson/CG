@@ -4,13 +4,11 @@ if (NOT Stb_FOUND)
 		stb
 		GIT_REPOSITORY [[https://github.com/nothings/stb]]
 		GIT_TAG [[c0c982601f40183e74d84a61237e968dca08380e]]
+		SOURCE_SUBDIR not-a-cmake-project
 	)
 
-	FetchContent_GetProperties (stb)
-	if (NOT stb_POPULATED)
-		message (STATUS "Cloning stb…")
-		FetchContent_Populate (stb)
-	endif ()
+	message (STATUS "Fetching stb sources…")
+	FetchContent_MakeAvailable (stb)
 
 	add_library (stb::stb INTERFACE IMPORTED)
 	set_target_properties (stb::stb PROPERTIES

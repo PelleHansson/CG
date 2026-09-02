@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.13)
+﻿cmake_minimum_required (VERSION 3.18)
 
 # Workaround for the lab computers
 if (WIN32)

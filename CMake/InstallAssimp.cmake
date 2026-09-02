@@ -5,13 +5,11 @@ if (NOT assimp_FOUND)
 		GIT_REPOSITORY [[https://github.com/assimp/assimp.git]]
 		GIT_TAG "v${LUGGCGL_ASSIMP_DOWNLOAD_VERSION}"
 		GIT_SHALLOW ON
+		SOURCE_SUBDIR not-a-cmake-project
 	)
 
-	FetchContent_GetProperties (assimp)
-	if (NOT assimp_POPULATED)
-		message (STATUS "Cloning assimp…")
-		FetchContent_Populate (assimp)
-	endif ()
+	message (STATUS "Fetching assimp sources…")
+	FetchContent_MakeAvailable (assimp)
 
 	set (assimp_INSTALL_DIR "${FETCHCONTENT_BASE_DIR}/assimp-install")
 	if (NOT EXISTS "${assimp_INSTALL_DIR}")
