@@ -1,5 +1,22 @@
 Revision history for CG_Labs
 
+v2026.1 2026-09-02
+==================
+
+Fixes
+-----
+
+* Fix normal space textures for Sponza model
+* Fix off-by-one error in loadObjects()
+
+Dependencies updates
+--------------------
+
+* Let Assimp build Zlib
+* Assimp 5.1.2 -> 5.4.3
+* GLM 0.9.9.5 -> 1.0.3
+* GLFW 3.2.0 -> 3.5.1
+
 
 v2021.2 2021-12-02
 ==================
