@@ -67,6 +67,7 @@ include (CMake/InstallTinyFileDialogs.cmake)
 include (CMake/InstallSTB.cmake)
 
 # Resources are found in an external archive
+cmake_policy(SET CMP0135 NEW)
 include (CMake/RetrieveResourceArchive.cmake)
 
 
