@@ -23,17 +23,22 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	// Convert the duration from microseconds to seconds.
 	auto const elapsed_time_s = std::chrono::duration<float>(elapsed_time).count();
 	// If a different ratio was needed, for example a duration in
-	// milliseconds, the following would have been used:
+	// milliseconds, the following would have been used:d
 	// auto const elapsed_time_ms = std::chrono::duration<float, std::milli>(elapsed_time).count();
-
-	_body.spin.rotation_angle = -glm::half_pi<float>() / 2.0f;
-
-	glm::mat4 world = parent_transform;
-
+	
+	_body.spin.rotation_angle = _body.spin.rotation_angle + elapsed_time_s * _body.spin.speed;
+	
+	glm::mat4 r1 = glm::rotate(parent_transform, _body.spin.rotation_angle , glm::vec3(0, 1, 0));
+	glm::mat4 r2 = glm::rotate(parent_transform, _body.spin.axial_tilt , glm::vec3(1, 0, 0));
+	glm::mat4 world = r2 * r1;
+	//glm::mat4 world = glm::scale(parent_transform, _body.scale);
+	
 	if (show_basis)
 	{
 		bonobo::renderBasis(1.0f, 2.0f, view_projection, world);
 	}
+
+
 
 	// Note: The second argument of `node::render()` is supposed to be the
 	// parent transform of the node, not the whole world matrix, as the

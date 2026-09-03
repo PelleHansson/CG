@@ -167,6 +167,7 @@ int main()
 	earth.set_spin(earth_spin);
 	earth.set_orbit({-2.5f, glm::radians(45.0f), glm::two_pi<float>() / 10.0f});
 	earth.add_child(&moon);
+	earth.set_scale(glm::vec3(1,0.2f,0.2f));
 
 
 	//
