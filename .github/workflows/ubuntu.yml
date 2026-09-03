@@ -35,6 +35,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y ninja-build libglfw3-dev
+        # GLFW build dependencies, in case no suitable GLFW is installed
+        sudo apt-get install -y xorg-dev libwayland-dev libxkbcommon-dev wayland-protocols
 
     - name: Generate
       env:

@@ -24,7 +24,7 @@ CG_Labs uses the following dependencies:
 * `Dear ImGui`_ (1.84.2): to display information on screen, such as logs;
 * Git_: to clone missing dependencies;
 * GLAD_ (0.1.33): to load OpenGL extensions;
-* GLFW_ (>= 3.5.1): to create a window and an OpenGL context, as well as handle inputs;
+* GLFW_ (>= 3.3.2): to create a window and an OpenGL context, as well as handle inputs;
 * GLM_ (1.0.3): for linear algebra operations;
 * stb_: to load image files;
 * tinyfiledialogs_ (>= 3.1.2): to display dialogue windows to the user, in case
