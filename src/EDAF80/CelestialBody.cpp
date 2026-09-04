@@ -26,12 +26,27 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	// milliseconds, the following would have been used:d
 	// auto const elapsed_time_ms = std::chrono::duration<float, std::milli>(elapsed_time).count();
 	
-	_body.spin.rotation_angle = _body.spin.rotation_angle + elapsed_time_s * _body.spin.speed;
+	_body.spin.rotation_angle = _body.spin.rotation_angle - elapsed_time_s * _body.spin.speed;
+	_body.orbit.rotation_angle = _body.orbit.rotation_angle + elapsed_time_s * _body.orbit.speed;
+
+
+	glm::mat4 s = glm::scale(glm::mat4(1.0f), _body.scale); //scale
+
+	glm::mat4 r1 = glm::rotate(glm::mat4(1.0f), _body.spin.rotation_angle, glm::vec3(0, 1, 0)); //spin of body
+
+	glm::mat4 r2 = glm::rotate(glm::mat4(1.0f), _body.spin.axial_tilt , glm::vec3(0, 0, 1)); //tilt of body
+
+	glm::mat4 to = glm::translate(glm::mat4(1.0f), glm::vec3(_body.orbit.radius, 0, 0)); //transform of orbit
+
+	glm::mat4 ro1 = glm::rotate(glm::mat4(1.0f), _body.orbit.rotation_angle , glm::vec3(0, 1, 0)); //spin in orbit
+
+	glm::mat4 ro2 = glm::rotate(glm::mat4(1.0f), _body.orbit.inclination , glm::vec3(0, 0, 1)); //tilt of orbit
+
 	
-	glm::mat4 r1 = glm::rotate(parent_transform, _body.spin.rotation_angle , glm::vec3(0, 1, 0));
-	glm::mat4 r2 = glm::rotate(parent_transform, _body.spin.axial_tilt , glm::vec3(1, 0, 0));
-	glm::mat4 world = r2 * r1;
-	//glm::mat4 world = glm::scale(parent_transform, _body.scale);
+
+	glm::mat4 world = parent_transform* ro2 *  ro1 * to * s * r2* r1;
+
+	
 	
 	if (show_basis)
 	{
@@ -48,7 +63,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	// world matrix.
 	_body.node.render(view_projection, world);
 
-	return parent_transform;
+	return parent_transform * ro2 * ro1 *to * r2; // tilt of orbit * spin in orbit* transform of orbit * tilt of body
 }
 
 void CelestialBody::add_child(CelestialBody* child)
