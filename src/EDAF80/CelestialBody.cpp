@@ -49,7 +49,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	
 
 	glm::mat4 world = parent_transform* ro2 *  ro1 * to * ro3 * s * r2* r1;
-	glm::mat4 child_transform = parent_transform * ro2 * ro1 * to * r2;
+	glm::mat4 child_transform = parent_transform * ro2 * ro1 * to * ro3 * r2;
 
 
 

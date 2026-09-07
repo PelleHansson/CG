@@ -241,6 +241,7 @@ int main()
 	bool show_basis = false;
 	float time_scale = 1.0f;
 	bool cameralock = false;
+	bool cameraposlock = false;
 	int cameraindex = 0;
 	int prevcameraindex = -1;
 	glm::vec3 cameratarget = glm::vec3(0.0f);
@@ -274,7 +275,12 @@ int main()
 			window_manager.ToggleFullscreenStatusForWindow(window);
 		if (input_handler.GetKeycodeState(GLFW_KEY_SPACE) & JUST_RELEASED)
 			cameralock = !cameralock;
-		
+		if (input_handler.GetKeycodeState(GLFW_KEY_B) & JUST_RELEASED && cameralock) 
+			cameraindex = std::max(0, cameraindex - 1);
+		if (input_handler.GetKeycodeState(GLFW_KEY_N) & JUST_RELEASED && cameralock) 
+			cameraindex = std::min(9, cameraindex + 1);
+		if (input_handler.GetKeycodeState(GLFW_KEY_M) & JUST_RELEASED && cameralock) 
+			cameraposlock = !cameraposlock;
 		
 		// Retrieve the actual framebuffer size: for HiDPI monitors,
 		// you might end up with a framebuffer larger than what you
@@ -311,12 +317,9 @@ int main()
 		// TODO: Replace this explicit rendering of the Earth and Moon
 		// with a traversal of the scene graph and rendering of all its
 		// nodes.
-		if (input_handler.GetKeycodeState(GLFW_KEY_B) & JUST_RELEASED && cameralock) {
-			cameraindex = std::max(0, cameraindex - 1);
-		}if (input_handler.GetKeycodeState(GLFW_KEY_N) & JUST_RELEASED && cameralock) {
-			cameraindex = std::min(9, cameraindex + 1);
+		
 
-		}
+	
 		std::stack<CelestialBodyRef> celestial_body_stack;
 		
 		celestial_body_stack.push(CelestialBodyRef{ &sun, glm::mat4(1.0f) });
@@ -342,8 +345,12 @@ int main()
 				camera.mWorld.SetTranslate(cameratarget + relativepos);
 				prevcameraindex = cameraindex;
 			}
+			if	(cameraposlock)
+				camera.mWorld.SetTranslate(cameratarget + relativepos);
+			else
+				relativepos = camera.mWorld.GetTranslation() - cameratarget;
 			camera.mWorld.LookAt(cameratarget);
-			relativepos = camera.mWorld.GetTranslation() - cameratarget;
+			
 		}
 			
 		//
