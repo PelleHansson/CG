@@ -40,12 +40,21 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 
 	glm::mat4 ro1 = glm::rotate(glm::mat4(1.0f), _body.orbit.rotation_angle , glm::vec3(0, 1, 0)); //spin in orbit
 
+
+	glm::mat4 ro3 = glm::rotate(glm::mat4(1.0f), -_body.orbit.rotation_angle , glm::vec3(0, 1, 0)); //counteracts the orbits rotation on the object
+
+
 	glm::mat4 ro2 = glm::rotate(glm::mat4(1.0f), _body.orbit.inclination , glm::vec3(0, 0, 1)); //tilt of orbit
 
 	
 
-	glm::mat4 world = parent_transform* ro2 *  ro1 * to * s * r2* r1;
+	glm::mat4 world = parent_transform* ro2 *  ro1 * to * ro3 * s * r2* r1;
+	glm::mat4 child_transform = parent_transform * ro2 * ro1 * to * r2;
 
+
+
+
+	
 	
 	
 	if (show_basis)
@@ -53,7 +62,14 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 		bonobo::renderBasis(1.0f, 2.0f, view_projection, world);
 	}
 
+	if (_ring.is_set)
+	{
+		glm::mat4 ring_s = glm::scale(glm::mat4(1.0f), glm::vec3(_ring.scale, 1.0f)); //scale
+		glm::mat4 ring_r1 = glm::rotate(glm::mat4(1.0f), glm::two_pi<float>() / 4, glm::vec3(1, 0, 0)); //spin of body
 
+		glm::mat4 ring = child_transform *  ring_r1 * ring_s;
+		_ring.node.render(view_projection, ring);
+	}
 
 	// Note: The second argument of `node::render()` is supposed to be the
 	// parent transform of the node, not the whole world matrix, as the
@@ -62,8 +78,9 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	// of the node is just the identity matrix and we can forward the whole
 	// world matrix.
 	_body.node.render(view_projection, world);
+	
 
-	return parent_transform * ro2 * ro1 *to * r2; // tilt of orbit * spin in orbit* transform of orbit * tilt of body
+	return child_transform; // tilt of orbit * spin in orbit* transform of orbit * tilt of body
 }
 
 void CelestialBody::add_child(CelestialBody* child)

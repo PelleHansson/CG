@@ -19,7 +19,7 @@ int main()
 	std::setlocale(LC_ALL, "");
 
 	using namespace std::literals::chrono_literals;
-
+	
 	//
 	// Set up the framework
 	//
@@ -222,7 +222,7 @@ int main()
 	sun.add_child(&uranus);
 	sun.add_child(&neptune);
 
-
+	
 
 	//
 	// Define the colour and depth used for clearing.
@@ -240,6 +240,11 @@ int main()
 	bool show_gui = true;
 	bool show_basis = false;
 	float time_scale = 1.0f;
+	bool cameralock = false;
+	int cameraindex = 0;
+	int prevcameraindex = -1;
+	glm::vec3 cameratarget = glm::vec3(0.0f);
+	glm::vec3 relativepos = glm::vec3(0.0f, 4.0f, 5.0f);
 
 	while (!glfwWindowShouldClose(window)) {
 		//
@@ -267,8 +272,10 @@ int main()
 			show_gui = !show_gui;
 		if (input_handler.GetKeycodeState(GLFW_KEY_F11) & JUST_RELEASED)
 			window_manager.ToggleFullscreenStatusForWindow(window);
-
-
+		if (input_handler.GetKeycodeState(GLFW_KEY_SPACE) & JUST_RELEASED)
+			cameralock = !cameralock;
+		
+		
 		// Retrieve the actual framebuffer size: for HiDPI monitors,
 		// you might end up with a framebuffer larger than what you
 		// actually asked for. For example, if you ask for a 1920x1080
@@ -304,21 +311,41 @@ int main()
 		// TODO: Replace this explicit rendering of the Earth and Moon
 		// with a traversal of the scene graph and rendering of all its
 		// nodes.
+		if (input_handler.GetKeycodeState(GLFW_KEY_B) & JUST_RELEASED && cameralock) {
+			cameraindex = std::max(0, cameraindex - 1);
+		}if (input_handler.GetKeycodeState(GLFW_KEY_N) & JUST_RELEASED && cameralock) {
+			cameraindex = std::min(9, cameraindex + 1);
 
+		}
 		std::stack<CelestialBodyRef> celestial_body_stack;
 		
 		celestial_body_stack.push(CelestialBodyRef{ &sun, glm::mat4(1.0f) });
-
+		int i = 0;
 		while( !celestial_body_stack.empty())
 		{
+			
 			CelestialBodyRef ref = celestial_body_stack.top(); //copty top
 			celestial_body_stack.pop(); //romove top
 			glm::mat4 world_transform = ref.body->render(animation_delta_time_us, camera.GetWorldToClipMatrix(), ref.parent_transform, show_basis); //render the body and get the parent transform for its children
+
+			if(cameraindex == i && cameralock)
+				cameratarget = world_transform[3];
+
 			for (CelestialBody* child : ref.body->get_children()) //add all children to the stack with the new parent transform
 				celestial_body_stack.push(CelestialBodyRef{ child, world_transform });
+			i++;
 		}
-		
 
+		
+		if (cameralock){
+			if (prevcameraindex != cameraindex) {
+				camera.mWorld.SetTranslate(cameratarget + relativepos);
+				prevcameraindex = cameraindex;
+			}
+			camera.mWorld.LookAt(cameratarget);
+			relativepos = camera.mWorld.GetTranslation() - cameratarget;
+		}
+			
 		//
 		// Add controls to the scene.
 		//
