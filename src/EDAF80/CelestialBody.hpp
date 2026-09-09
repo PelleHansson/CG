@@ -51,6 +51,8 @@ public:
 	                 glm::mat4 const& parent_transform = glm::mat4(1.0f),
 	                 bool show_basis = false);
 
+	glm::mat4 get_world() const { return _world; }
+
 	//! \brief Mark another celestial body as being “attached” to the current one.
 	void add_child(CelestialBody* child);
 
@@ -103,4 +105,6 @@ private:
 	} _ring;
 
 	std::vector<CelestialBody*> _children;
+
+	glm::mat4 _world{ 1.0f };
 };
