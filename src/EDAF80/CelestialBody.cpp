@@ -28,6 +28,7 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 
 	//_body.spin.rotation_angle = -glm::half_pi<float>() / 2.0f;
 
+	// Accumulate the angle 
 	_body.spin.rotation_angle += _body.spin.speed * elapsed_time_s;
 	_body.orbit.rotation_angle += _body.orbit.speed * elapsed_time_s;
 
@@ -46,8 +47,13 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	glm::mat4 R2o = glm::rotate(glm::mat4(1.0f), _body.orbit.inclination, glm::vec3(0.0f, 0.0f, 1.0f));
 
 
-	glm::mat4 world = parent_transform * R2o * R1o * To * R2s * R1s * S;
-	glm::mat4 child_transform = parent_transform * R2o * R1o * To * R2s;
+	glm::mat4 orbit_transform = R2o * R1o * To;
+	glm::vec3 orbit_position = glm::vec3(orbit_transform[3]);
+	glm::mat4 T_pos = glm::translate(glm::mat4(1.0f), orbit_position);
+
+	glm::mat4 world = parent_transform * T_pos * R2s * R1s * S;
+	_world = world; // for camera follow
+	glm::mat4 child_transform = parent_transform * T_pos * R2s;
 
 	if (show_basis)
 	{
@@ -63,10 +69,8 @@ glm::mat4 CelestialBody::render(std::chrono::microseconds elapsed_time,
 	_body.node.render(view_projection, world);
 
 	if (_ring.is_set) {
-		glm::mat4 ring_scale = glm::scale(glm::mat4(1.0f),
-			glm::vec3(_ring.scale.x, _ring.scale.y, 1.0f));
-		glm::mat4 ring_rotation = glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(),
-			glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 ring_scale = glm::scale(glm::mat4(1.0f), glm::vec3(_ring.scale.x, _ring.scale.y, 1.0f));
+		glm::mat4 ring_rotation = glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		glm::mat4 ring_world = child_transform * ring_rotation * ring_scale;
 

@@ -194,7 +194,7 @@ int main()
 	saturn.set_scale(saturn_scale);
 	saturn.set_orbit(saturn_orbit);
 	saturn.set_spin(saturn_spin);
-	saturn.set_ring(saturn_ring_shape, &celestial_body_shader, saturn_ring_texture, saturn_ring_scale);
+	saturn.set_ring(saturn_ring_shape, &celestial_ring_shader, saturn_ring_texture, saturn_ring_scale);
 
 	CelestialBody uranus(sphere, &celestial_body_shader, uranus_texture);
 	uranus.set_scale(uranus_scale);
@@ -234,6 +234,7 @@ int main()
 	bool show_gui = true;
 	bool show_basis = false;
 	float time_scale = 1.0f;
+	bool follow_earth = false;
 
 	while (!glfwWindowShouldClose(window)) {
 		//
@@ -261,6 +262,8 @@ int main()
 			show_gui = !show_gui;
 		if (input_handler.GetKeycodeState(GLFW_KEY_F11) & JUST_RELEASED)
 			window_manager.ToggleFullscreenStatusForWindow(window);
+		if (input_handler.GetKeycodeState(GLFW_KEY_SPACE) & JUST_RELEASED)
+			follow_earth = !follow_earth;
 
 
 		// Retrieve the actual framebuffer size: for HiDPI monitors,
@@ -318,6 +321,13 @@ int main()
 			}
 		}
 
+		// interplanetary tour - earth view
+		if (follow_earth) {
+			glm::vec3 const target = glm::vec3(earth.get_world()[3]);
+			camera.mWorld.SetTranslate(target + glm::vec3(0.0f, 0.2f, 0.3f));
+			camera.mWorld.LookAt(target);
+		}
+
 		// glm::mat4 earth_transform = earth.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), glm::translate(glm::mat4(1.0f), glm::vec3(2.0f, 0.0f, 0.0f)), show_basis);
 		// glm::mat4 moon_transform = moon.render(animation_delta_time_us, camera.GetWorldToClipMatrix(), earth_transform, show_basis);
 
@@ -359,7 +369,7 @@ int main()
 	glDeleteTextures(1, &moon_texture);
 	glDeleteTextures(1, &earth_texture);
 	glDeleteTextures(1, &venus_texture);
-	glDeleteTextures(1, &mars_texture);
+	glDeleteTextures(1, &mercury_texture);
 	glDeleteTextures(1, &sun_texture);
 
 	bonobo::deinit();
