@@ -128,7 +128,98 @@ parametric_shapes::createSphere(float const radius,
                                 unsigned int const longitude_split_count,
                                 unsigned int const latitude_split_count)
 {
+	unsigned int const longitude_slice_vertices_count = longitude_split_count + 1u;
+	unsigned int const latitude_slice_vertices_count  = latitude_split_count + 1u;
 
+	unsigned int const vertices_nb = longitude_slice_vertices_count * latitude_slice_vertices_count;
+
+	std::vector<glm::vec3> vertices  = std::vector<glm::vec3>(vertices_nb);
+	std::vector<glm::vec3> normals   = std::vector<glm::vec3>(vertices_nb);
+	std::vector<glm::vec3> texcoords = std::vector<glm::vec3>(vertices_nb);
+	std::vector<glm::vec3> tangents  = std::vector<glm::vec3>(vertices_nb);
+	std::vector<glm::vec3> binormals = std::vector<glm::vec3>(vertices_nb);
+
+	float const d_theta = glm::two_pi<float>() / (static_cast<float>(longitude_split_count));
+	float const d_phi = glm::pi<float>() / (static_cast<float>(latitude_split_count)); //halfcircle
+
+
+
+
+	float theta = 0.0f;
+	
+	size_t index = 0u;
+	for (unsigned int i = 0u; i < longitude_slice_vertices_count; ++i) {
+		float const cos_theta = std::cos(theta);
+		float const sin_theta = std::sin(theta);
+
+		float phi = 0.0f;
+		for (unsigned int j = 0u; j < latitude_slice_vertices_count; ++j) {
+			float const cos_phi = std::cos(phi);
+			float const sin_phi = std::sin(phi);
+
+			
+			//pos
+			vertices[index] = glm::vec3(radius * sin_theta * sin_phi,
+										-radius *cos_phi,
+									radius * cos_theta * sin_phi);
+			
+
+			texcoords[index] = glm::vec3(static_cast<float>(i) / static_cast<float>(longitude_split_count),
+										static_cast<float>(i) / static_cast<float>(latitude_split_count),
+										0.0f);
+			//tangent
+			auto const t = glm::vec3(radius * cos_theta * sin_phi,
+												0.0f,
+									-radius * sin_theta * sin_phi);
+			tangents[index] = t;
+
+			auto const b = glm::vec3(radius * sin_theta * cos_phi,
+										radius* sin_phi,
+									radius * cos_theta * sin_phi);
+			binormals[index] = b;
+
+			auto const n = glm::cross(t, b);
+			normals[index] = n;
+
+			phi += d_phi;
+			index++;
+		}
+		theta += d_theta;
+	}
+	std::vector<glm::uvec3> index_sets = std::vector<glm::uvec3>(2u * longitude_split_count * latitude_split_count);
+
+	index = 0u;
+	for (unsigned int i = 0u; i < longitude_split_count; ++i) {
+		for (unsigned int j = 0u; j < latitude_split_count; ++j) {
+			index_sets[index] = glm::uvec3(longitude_split_count * i + j,	//current node
+										  longitude_split_count * i + (j + 1), //next latilal node
+										  longitude_split_count * (i + 1) + (j + 1)); //diagonal node
+
+			//	(2)---	----(3)
+			//	 I		 /	  	
+			//	 I	 /		  
+			//  (1) 
+
+
+			index++;
+			index_sets[index] = glm::uvec3(longitude_split_count * i + j,	//current node
+				longitude_split_count * (i +1) + (j + 1), //diagonal
+				longitude_split_count * (i + 1) + j);  // next logital node
+
+		//				(3)
+		//	  		 /	 I 	
+		//	  	 /		 I
+		//  (1) --------(2)
+
+			index++;
+		}
+	}
+
+	bonobo::mesh_data data;
+	glGenVertexArrays(1, &data.vao);
+	assert(data.vao != 0u);
+	glBindVertexArray(data.vao);
+	//auto const spread_slice_vertices_count = 
 	//! \todo Implement this function
 	return bonobo::mesh_data();
 }
@@ -154,6 +245,8 @@ parametric_shapes::createCircleRing(float const radius,
 	auto const circle_slice_vertices_count = circle_slice_edges_count + 1u;
 	auto const spread_slice_vertices_count = spread_slice_edges_count + 1u;
 	auto const vertices_nb = circle_slice_vertices_count * spread_slice_vertices_count;
+
+	
 
 	auto vertices  = std::vector<glm::vec3>(vertices_nb);
 	auto normals   = std::vector<glm::vec3>(vertices_nb);
