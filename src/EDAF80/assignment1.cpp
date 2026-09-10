@@ -329,6 +329,7 @@ int main()
 			
 			CelestialBodyRef ref = celestial_body_stack.top(); //copty top
 			celestial_body_stack.pop(); //romove top
+
 			glm::mat4 world_transform = ref.body->render(animation_delta_time_us, camera.GetWorldToClipMatrix(), ref.parent_transform, show_basis); //render the body and get the parent transform for its children
 
 			if(cameraindex == i && cameralock)
