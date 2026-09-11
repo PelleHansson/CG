@@ -165,17 +165,17 @@ parametric_shapes::createSphere(float const radius,
 			
 
 			texcoords[index] = glm::vec3(static_cast<float>(i) / static_cast<float>(longitude_split_count),
-										static_cast<float>(i) / static_cast<float>(latitude_split_count),
+										static_cast<float>(j) / static_cast<float>(latitude_split_count),
 										0.0f);
 			//tangent
-			auto const t = glm::vec3(radius * cos_theta * sin_phi,
+			auto const t = glm::vec3(cos_theta ,
 												0.0f,
-									-radius * sin_theta * sin_phi);
+									-sin_theta );
 			tangents[index] = t;
 
 			auto const b = glm::vec3(radius * sin_theta * cos_phi,
 										radius* sin_phi,
-									radius * cos_theta * sin_phi);
+									radius * cos_theta * cos_phi);
 			binormals[index] = b;
 
 			auto const n = glm::cross(t, b);

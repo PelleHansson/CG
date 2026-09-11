@@ -43,7 +43,7 @@ void
 edaf80::Assignment2::run()
 {
 	// Load the sphere geometry
-	auto const shape = parametric_shapes::createSphere(0.15f, 5u, 3u);
+	auto const shape = parametric_shapes::createSphere(0.15f, 10u, 10u);
 	if (shape.vao == 0u)
 		return;
 
