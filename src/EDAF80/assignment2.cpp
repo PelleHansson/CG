@@ -164,6 +164,7 @@ edaf80::Assignment2::run()
 
 	std::int32_t program_index = 0;
 	float elapsed_time_s = 0.0f;
+	float interpolate_time_s = 0.0f;
 	auto cull_mode = bonobo::cull_mode_t::disabled;
 	auto polygon_mode = bonobo::polygon_mode_t::fill;
 	bool show_logs = true;
@@ -171,7 +172,9 @@ edaf80::Assignment2::run()
 	bool show_basis = false;
 	float basis_thickness_scale = 1.0f;
 	float basis_length_scale = 1.0f;
-
+	int control_point_index = 0;
+	float speed = 1.0f;
+	float time_per_node = 3.0f;
 	changeCullMode(cull_mode);
 
 	while (!glfwWindowShouldClose(window)) {
@@ -212,20 +215,41 @@ edaf80::Assignment2::run()
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		bonobo::changePolygonMode(polygon_mode);
 
-
+		
 		if (interpolate) {
 			//! \todo Interpolate the movement of a shape between various
 			//!        control points.
+			interpolate_time_s += std::chrono::duration<float>(deltaTimeUs).count() * speed;
+			interpolate_time_s = glm::mod(interpolate_time_s, time_per_node * float(control_point_locations.size())); //frames the time to loop after all poites have been visited
+
+			float time_scaled = interpolate_time_s / time_per_node; //ajdust the speed of the interpolation by scaling the time to the secpertarget, goes from 0 to control_point_locations.size() in secpertarget seconds
+
+			int i = glm::floor(time_scaled); //get the index of the current control point
+
+
+			glm::vec3 nextpos = glm::vec3(0.0f);
+			glm::vec3 p0 = control_point_locations[(i - 1 + control_point_locations.size() )% control_point_locations.size()];
+			glm::vec3 p1 = control_point_locations[i];
+			glm::vec3 p2 = control_point_locations[(i+1) % control_point_locations.size()];
+			glm::vec3 p3 = control_point_locations[(i + 2) % control_point_locations.size()];
+
+			float x = glm::mod(time_scaled, 1.0f);
 			if (use_linear) {
-				//! \todo Compute the interpolated position
-				//!       using the linear interpolation.
+				
+				nextpos = interpolation::evalLERP(p1, p2, x);
+				
 			}
 			else {
+				
+				nextpos = interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, x);
 				//! \todo Compute the interpolated position
 				//!       using the Catmull-Rom interpolation;
 				//!       use the `catmull_rom_tension`
 				//!       variable as your tension argument.
 			}
+			circle_rings_transform_ref.SetTranslate(nextpos);
+
+
 		}
 
 		circle_rings.render(mCamera.GetWorldToClipMatrix());
@@ -251,6 +275,7 @@ edaf80::Assignment2::run()
 			ImGui::Checkbox("Enable interpolation", &interpolate);
 			ImGui::Checkbox("Use linear interpolation", &use_linear);
 			ImGui::SliderFloat("Catmull-Rom tension", &catmull_rom_tension, 0.0f, 1.0f);
+			ImGui::SliderFloat("Sphere speed", &speed, 0.0f, 10.0f);
 			ImGui::Separator();
 			ImGui::Checkbox("Show basis", &show_basis);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
