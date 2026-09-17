@@ -43,12 +43,15 @@ void
 edaf80::Assignment2::run()
 {
 	// Load the sphere geometry
-	auto const shape = parametric_shapes::createCircleRing(2.0f, 0.75f, 40u, 4u);
+	auto const shape = parametric_shapes::createSphere(0.15f, 10u, 10u);
 	if (shape.vao == 0u)
 		return;
 
 	// Set up the camera
+	//mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 0.0f, 0.5f));
+	//mCamera.mWorld.SetTranslate(glm::vec3(0.0f, -0.5f, 0.0f));
 	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 1.0f, 9.0f));
+	//mCamera.mWorld.SetRotateX(glm::half_pi<float>())
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
 	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
 
@@ -216,16 +219,31 @@ edaf80::Assignment2::run()
 		if (interpolate) {
 			//! \todo Interpolate the movement of a shape between various
 			//!        control points.
+			auto const n = control_point_locations.size(); // 9
+			float const u = std::fmod(elapsed_time_s, static_cast<float>(n)); 
+			auto const i = static_cast<std::size_t>(u); // i번째 구간, u의 정수부분
+			float const x = u - static_cast<float>(i); // 구간 안 진행률, u의 소수부분
+
+			glm::vec3 new_position;
+
 			if (use_linear) {
 				//! \todo Compute the interpolated position
 				//!       using the linear interpolation.
+				new_position = interpolation::evalLERP(
+					control_point_locations[i], control_point_locations[(i + 1) % n], x);
 			}
 			else {
 				//! \todo Compute the interpolated position
 				//!       using the Catmull-Rom interpolation;
 				//!       use the `catmull_rom_tension`
 				//!       variable as your tension argument.
+				new_position = interpolation::evalCatmullRom(
+					control_point_locations[(i + n - 1) % n], control_point_locations[i],
+					control_point_locations[(i + 1) % n], control_point_locations[(i + 2) % n],
+					catmull_rom_tension, x
+				);
 			}
+			circle_rings.get_transform().SetTranslate(new_position);
 		}
 
 		circle_rings.render(mCamera.GetWorldToClipMatrix());
