@@ -75,19 +75,38 @@ edaf80::Assignment3::run()
 	if (normal_shader == 0u)
 		LogError("Failed to load normal shader");
 
-	GLuint texcoord_shader = 0u;
-	program_manager.CreateAndRegisterProgram("Texture coords",
-	                                         { { ShaderType::vertex, "EDAF80/texcoord.vert" },
-	                                           { ShaderType::fragment, "EDAF80/texcoord.frag" } },
-	                                         texcoord_shader);
-	if (texcoord_shader == 0u)
+	
+	GLuint cubemap = bonobo::loadTextureCubeMap(
+		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		true
+	);
+
+	GLuint skybox_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Skybox",
+		{ { ShaderType::vertex, "EDAF80/skybox.vert" },
+		{ ShaderType::fragment, "EDAF80/skybox.frag" } },
+		skybox_shader);
+
+	if (skybox_shader == 0u)
 		LogError("Failed to load texcoord shader");
 
+	
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	auto const set_uniforms = [&light_position](GLuint program){
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 	};
+	auto const cubemap_set_uniforms = [&cubemap](GLuint program)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap);
 
+			glUniform1i(glGetUniformLocation(program, "cubemap"), 0);
+		};
 	bool use_normal_mapping = false;
 	auto camera_position = mCamera.mWorld.GetTranslation();
 	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position](GLuint program){
@@ -108,7 +127,7 @@ edaf80::Assignment3::run()
 
 	Node skybox;
 	skybox.set_geometry(skybox_shape);
-	skybox.set_program(&fallback_shader, set_uniforms);
+	skybox.set_program(&skybox_shader, cubemap_set_uniforms);
 
 	auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
 	if (demo_shape.vao == 0u) {
@@ -231,7 +250,7 @@ edaf80::Assignment3::run()
 			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
 		}
 		ImGui::End();
-
+		
 		demo_sphere.set_material_constants(demo_material);
 
 		if (show_basis)

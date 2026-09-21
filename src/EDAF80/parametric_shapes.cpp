@@ -169,15 +169,13 @@ parametric_shapes::createSphere(float const radius,
 										0.0f);
 			//tangent
 			auto const t = glm::vec3(cos_theta ,
-												0.0f,
+										0.0f,
 									-sin_theta );
 			tangents[index] = t;
-
 			auto const b = glm::vec3(radius * sin_theta * cos_phi,
 										radius* sin_phi,
 									radius * cos_theta * cos_phi);
 			binormals[index] = b;
-
 			auto const n = glm::cross(t, b);
 			normals[index] = n;
 
@@ -197,8 +195,8 @@ parametric_shapes::createSphere(float const radius,
 				latitude_slice_vertices_count * (i + 1) + (j + 1)); //diagonal node
 
 			//				(3)
-			//	 I		 /	 I 	
-			//	 I	 /		 I 
+			//	 		 /	 I 	
+			//	 	 /		 I 
 			//  (1) ------- (2)
 
 

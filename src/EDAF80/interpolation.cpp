@@ -13,6 +13,8 @@ interpolation::evalLERP(glm::vec3 const& p0, glm::vec3 const& p1, float const x)
 	//{
 	//	result[i] = glm::dot(w, (m * glm::vec2(p0[i], p1[i])));
 	//}
+
+
 	
 
 	return mix(p0,p1,x);
@@ -25,11 +27,11 @@ interpolation::evalCatmullRom(glm::vec3 const& p0, glm::vec3 const& p1,
 {
 
 	glm::mat4 m = glm::transpose(glm::mat4(
-		0, 1, 0, 0,
-		-t, 0, t, 0,
-		2 * t, t - 3, 3 - 2 * t, -t,
-		-t, 2 - t, t - 2, t
-	));
+								0    , 1    , 0        ,  0 ,
+								-t   , 0    , t        ,  0 ,
+								2 * t, t - 3, 3 - 2 * t, -t ,
+								-t	 , 2 - t, t - 2	   , t
+	)); 
 	//rotated for glm interfdace
 
 	glm::vec4 w = glm::vec4(1, x ,  x * x,   x * x * x);
