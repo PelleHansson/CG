@@ -1,4 +1,5 @@
 #include "assignment3.hpp"
+#include "assignment3.hpp"
 #include "interpolation.hpp"
 #include "parametric_shapes.hpp"
 
@@ -76,15 +77,20 @@ edaf80::Assignment3::run()
 		LogError("Failed to load normal shader");
 
 	
-	GLuint cubemap = bonobo::loadTextureCubeMap(
-		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
-		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
-		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
-		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
-		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
-		config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
-		true
-	);
+	auto loadCubemap = [](const std::string& cubename) {
+		std::cout << "Loaded cubemap: " << cubename << std::endl;
+		return bonobo::loadTextureCubeMap(
+			config::resources_path("cubemaps/" + cubename + "/posx.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/negx.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/posy.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/negy.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/posz.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/negz.jpg"),
+			true
+		);
+		};
+	GLuint cubemap = loadCubemap("NissiBeach2");
+	
 
 	GLuint skybox_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Skybox",
@@ -93,9 +99,17 @@ edaf80::Assignment3::run()
 		skybox_shader);
 
 	if (skybox_shader == 0u)
-		LogError("Failed to load texcoord shader");
+		LogError("Failed to load skybox shader");
 
-	
+	GLuint phong_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Phong",
+		{ { ShaderType::vertex, "EDAF80/phong.vert" },
+		{ ShaderType::fragment, "EDAF80/phong.frag" } },
+		phong_shader);
+
+	if (phong_shader == 0u)
+		LogError("Failed to load phong shader");
+
 	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	auto const set_uniforms = [&light_position](GLuint program){
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
@@ -107,12 +121,25 @@ edaf80::Assignment3::run()
 
 			glUniform1i(glGetUniformLocation(program, "cubemap"), 0);
 		};
+
+
+	auto load2dtex = [](const std::string& texname) {
+		return bonobo::loadTexture2D(
+			config::resources_path("textures/" + texname ),
+			true
+		);
+		};
+
 	bool use_normal_mapping = false;
 	auto camera_position = mCamera.mWorld.GetTranslation();
-	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position](GLuint program){
+	glm::vec3 ls = glm::vec3(1.0f, 1.0f, 1.0f);
+	auto const phong_set_uniforms = [&use_normal_mapping,&light_position,&camera_position,&ls](GLuint program ){
+		
 		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+		glUniform3fv(glGetUniformLocation(program, "ls"),1,glm::value_ptr(ls));
+
 	};
 
 
@@ -127,7 +154,8 @@ edaf80::Assignment3::run()
 
 	Node skybox;
 	skybox.set_geometry(skybox_shape);
-	skybox.set_program(&skybox_shader, cubemap_set_uniforms);
+	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	skybox.set_program(&skybox_shader, set_uniforms);
 
 	auto demo_shape = parametric_shapes::createSphere(1.5f, 40u, 40u);
 	if (demo_shape.vao == 0u) {
@@ -135,16 +163,25 @@ edaf80::Assignment3::run()
 		return;
 	}
 
+
 	bonobo::material_data demo_material;
 	demo_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
 	demo_material.diffuse = glm::vec3(0.7f, 0.2f, 0.4f);
 	demo_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 	demo_material.shininess = 10.0f;
 
+	auto diffuse_tex	= load2dtex("leather_red_02_coll1_2k.jpg");
+	auto specular_tex	= load2dtex("leather_red_02_rough_2k.jpg");
+	auto normal_tex		= load2dtex("leather_red_02_nor_2k.jpg");
+	
+
 	Node demo_sphere;
 	demo_sphere.set_geometry(demo_shape);
 	demo_sphere.set_material_constants(demo_material);
-	demo_sphere.set_program(&fallback_shader, phong_set_uniforms);
+	demo_sphere.add_texture("normal_texture", normal_tex, GL_TEXTURE_2D);
+	demo_sphere.add_texture("diffuse_texture", diffuse_tex, GL_TEXTURE_2D);
+	demo_sphere.add_texture("specular_texture", specular_tex, GL_TEXTURE_2D);										
+	demo_sphere.set_program(&phong_shader, phong_set_uniforms);
 
 
 	glClearDepthf(1.0f);
@@ -225,7 +262,84 @@ edaf80::Assignment3::run()
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		bool opened = ImGui::Begin("Scene Control", nullptr, ImGuiWindowFlags_None);
+
 		if (opened) {
+			static int selectedsky = 0;
+			const char* itemssky[] = { "NissiBeach2","Maskonaive2", "Teide", "LarnacaCastle"};
+			if (ImGui::BeginCombo("Skybox", itemssky[selectedsky]))
+			{
+				for (int i = 0; i < IM_ARRAYSIZE(itemssky); i++)
+				{
+					bool isSelected = (selectedsky == i);
+
+					if (ImGui::Selectable(itemssky[i], isSelected))
+					{
+						selectedsky = i;
+
+						cubemap = loadCubemap(itemssky[i]);
+						skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+					}
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+
+				ImGui::EndCombo();
+			}
+			static int selecteddif = 0;
+			const char* itemsdif[] = {"leather_red_02_coll1_2k.jpg", "cobblestone_floor_08_diff_2k.jpg" };
+			if (ImGui::BeginCombo("Demo diffuse", itemsdif[selecteddif]))
+			{
+				for (int i = 0; i < IM_ARRAYSIZE(itemsdif); i++)
+				{
+					bool isSelected = (selecteddif == i);
+					if (ImGui::Selectable(itemsdif[i], isSelected))
+					{
+						selecteddif = i;
+						diffuse_tex = load2dtex(itemsdif[i]);
+						demo_sphere.add_texture("diffuse_texture", diffuse_tex, GL_TEXTURE_2D);
+					}
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			static int selectedspec = 0;
+			const char* itemsspec[] = { "leather_red_02_rough_2k.jpg","cobblestone_floor_08_rough_2k.jpg" };
+			if (ImGui::BeginCombo("Demo specular", itemsspec[selectedspec]))
+			{
+				for (int i = 0; i < IM_ARRAYSIZE(itemsspec); i++)
+				{
+					bool isSelected = (selectedspec == i);
+					if (ImGui::Selectable(itemsspec[i], isSelected))
+					{
+						selectedspec = i;
+						specular_tex = load2dtex(itemsspec[i]);
+						demo_sphere.add_texture("specular_texture", specular_tex, GL_TEXTURE_2D);
+					}
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			static int selectednor = 0;
+			const char* itemsnor[] = { "leather_red_02_nor_2k.jpg","cobblestone_floor_08_nor_2k.jpg","waves.png"};
+			if (ImGui::BeginCombo("Demo normal", itemsnor[selectednor]))
+			{
+				for (int i = 0; i < IM_ARRAYSIZE(itemsnor); i++)
+				{
+					bool isSelected = (selectednor == i);
+					if (ImGui::Selectable(itemsnor[i], isSelected))
+					{
+						selectednor = i;
+							
+						normal_tex = load2dtex(itemsnor[i]);
+						demo_sphere.add_texture("normal_texture", normal_tex, GL_TEXTURE_2D);
+					}
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
 			auto const cull_mode_changed = bonobo::uiSelectCullMode("Cull mode", cull_mode);
 			if (cull_mode_changed) {
 				changeCullMode(cull_mode);
