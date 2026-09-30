@@ -11,119 +11,97 @@
 
 bonobo::mesh_data
 parametric_shapes::createQuad(float const width, float const height,
-                              unsigned int const horizontal_split_count,
-                              unsigned int const vertical_split_count)
+	unsigned int const horizontal_split_count,
+	unsigned int const vertical_split_count)
 {
-	auto const vertices = std::array<glm::vec3, 4>{
-		glm::vec3(0.0f,  0.0f,   0.0f),
-		glm::vec3(width, 0.0f,   0.0f),
-		glm::vec3(width, height, 0.0f),
-		glm::vec3(0.0f,  height, 0.0f)
-	};
+	// vertex, 점 개수만큼, split + 2 
+	auto vertices = std::vector<glm::vec3>();
+	for (unsigned int i = 0; i < vertical_split_count + 2; i++) {
+		for (unsigned int j = 0; j < horizontal_split_count + 2; j++) {
+			vertices.push_back(glm::vec3(j * width / (horizontal_split_count + 1), 0.0f, i * height / (vertical_split_count + 1)));
+		}
+		}
 
-	auto const index_sets = std::array<glm::uvec3, 2>{
-		glm::uvec3(0u, 1u, 2u),
-		glm::uvec3(0u, 2u, 3u)
-	};
+		// 삼각형 indexing, 칸 수만큼, split+ 1, 사각형 = 2개의 삼각형
+		auto index_sets = std::vector<glm::uvec3>();
+		unsigned int vertices_per_row = horizontal_split_count + 2; // 한 줄에 있는 vertex 개수
+		for (unsigned int i = 0; i < vertical_split_count + 1; i++) {
+			for (unsigned int j = 0; j < horizontal_split_count + 1; j++) {
+				unsigned int top_left = i * vertices_per_row + j;
+				unsigned int top_right = top_left + 1;
+				unsigned int bottom_left = (i + 1) * vertices_per_row + j;
+				unsigned int bottom_right = bottom_left + 1;
+				index_sets.push_back(glm::uvec3(top_left, bottom_left, top_right));
+				index_sets.push_back(glm::uvec3(top_right, bottom_left, bottom_right));
+			}
+		}
 
-	bonobo::mesh_data data;
+		// texture coordinates, vertex 개수만큼, split + 2
+		auto texcoords = std::vector<glm::vec2>();
+		for (unsigned int i = 0; i < vertical_split_count + 2; i++) {
+			for (unsigned int j = 0; j < horizontal_split_count + 2; j++) {
+				texcoords.push_back(glm::vec2(static_cast<float>(j) / (horizontal_split_count + 1), static_cast<float>(i) / (vertical_split_count + 1)));
+			}
+		}
 
-	if (horizontal_split_count > 0u || vertical_split_count > 0u)
-	{
-		LogError("parametric_shapes::createQuad() does not support tesselation.");
+		bonobo::mesh_data data;
+
+		//if (horizontal_split_count > 0u || vertical_split_count > 0u)
+		//{
+		//	LogError("parametric_shapes::createQuad() does not support tesselation.");
+		//	return data;
+		//}
+
+		// Create a Vertex Array Object: it will remember where we stored the
+		// data on the GPU, and  which part corresponds to the vertices, which
+		// one for the normals, etc.
+		
+		// VAO(Vertex Array Object) 만들고 bind: 어떤 buffer의 어느 부분이 vertex/texcoord인지 기억하는 상자
+		glGenVertexArrays(1, &data.vao);
+		glBindVertexArray(data.vao);
+
+		auto const vertices_offset = 0u;
+		auto const vertices_size = static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3));
+		auto const texcoords_offset = vertices_offset + vertices_size;
+		auto const texcoords_size = static_cast<GLsizeiptr>(texcoords.size() * sizeof(glm::vec2));
+		auto const bo_size = static_cast<GLsizeiptr>(vertices_size + texcoords_size);
+
+		// vertex용 buffer(`data.bo`) 만들고 전체 크기만큼 GPU에 메모리 공간 만들기(데이터는 아직 X)
+		glGenBuffers(1, &data.bo);
+		glBindBuffer(GL_ARRAY_BUFFER, data.bo);
+		glBufferData(GL_ARRAY_BUFFER, bo_size, nullptr, GL_STATIC_DRAW);
+
+		// 앞부분에 vertices 넣고, 읽는 법 알려주기 (float 3개씩, 0바이트부터)
+		glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size, static_cast<GLvoid const*>(vertices.data()));
+		glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::vertices));
+		glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(0x0));
+
+		// 뒷부분에 texcoords 넣고, 읽는 법 알려주기 (float 2개씩, texcoords_offset부터)
+		glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size, static_cast<GLvoid const*>(texcoords.data()));
+		glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::texcoords));
+		glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::texcoords), 2, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(texcoords_offset));
+
+		// index용 buffer(data.ibo) 만들고 bind (삼각형 번호 목록)
+		glGenBuffers(1, &data.ibo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data.ibo);
+
+		// buffer에 index 데이터 복사 (크기 = 삼각형 개수 × uvec3 크기)
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, /*! \todo how many bytes should the buffer contain? */
+			static_cast<GLsizeiptr>(index_sets.size() * sizeof(glm::uvec3)),
+			/* where is the data stored on the CPU? */index_sets.data(),
+			/* inform OpenGL that the data is modified once, but used often */GL_STATIC_DRAW);
+
+		// 총 index 개수 = 삼각형 개수 × 3
+		data.indices_nb = /*! \todo how many indices do we have? */
+			static_cast<GLsizei>(index_sets.size() * 3u);
+
+		// 설정 끝, bind 풀기
+		glBindVertexArray(0u);
+		glBindBuffer(GL_ARRAY_BUFFER, 0u);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
+
 		return data;
 	}
-
-	//
-	// NOTE:
-	//
-	// Only the values preceeded by a `\todo` tag should be changed, the
-	// other ones are correct!
-	//
-
-	// Create a Vertex Array Object: it will remember where we stored the
-	// data on the GPU, and  which part corresponds to the vertices, which
-	// one for the normals, etc.
-	//
-	// The following function will create new Vertex Arrays, and pass their
-	// name in the given array (second argument). Since we only need one,
-	// pass a pointer to `data.vao`.
-	glGenVertexArrays(1, &data.vao);
-
-	// To be able to store information, the Vertex Array has to be bound
-	// first.
-	glBindVertexArray(data.vao);
-
-	// To store the data, we need to allocate buffers on the GPU. Let's
-	// allocate a first one for the vertices.
-	//
-	// The following function's syntax is similar to `glGenVertexArray()`:
-	// it will create multiple OpenGL objects, in this case buffers, and
-	// return their names in an array. Have the buffer's name stored into
-	// `data.bo`.
-	glGenBuffers(1, &data.bo);
-
-	// Similar to the Vertex Array, we need to bind it first before storing
-	// anything in it. The data stored in it can be interpreted in
-	// different ways. Here, we will say that it is just a simple 1D-array
-	// and therefore bind the buffer to the corresponding target.
-	glBindBuffer(GL_ARRAY_BUFFER, /*! \todo bind the previously generated Buffer */ data.bo);
-
-	glBufferData(GL_ARRAY_BUFFER, /*! \todo how many bytes should the buffer contain? */
-				static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3)),
-	             /* where is the data stored on the CPU? */vertices.data(),
-	             /* inform OpenGL that the data is modified once, but used often */GL_STATIC_DRAW);
-
-	// Vertices have been just stored into a buffer, but we still need to
-	// tell Vertex Array where to find them, and how to interpret the data
-	// within that buffer.
-	//
-	// You will see shaders in more detail in lab 3, but for now they are
-	// just pieces of code running on the GPU and responsible for moving
-	// all the vertices to clip space, and assigning a colour to each pixel
-	// covered by geometry.
-	// Those shaders have inputs, some of them are the data we just stored
-	// in a buffer object. We need to tell the Vertex Array which inputs
-	// are enabled, and this is done by the following line of code, which
-	// enables the input for vertices:
-	glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::vertices));
-
-	// Once an input is enabled, we need to explain where the data comes
-	// from, and how it interpret it. When calling the following function,
-	// the Vertex Array will automatically use the current buffer bound to
-	// GL_ARRAY_BUFFER as its source for the data. How to interpret it is
-	// specified below:
-	glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::vertices),
-	                      /*! \todo how many components do our vertices have? */3,
-	                      /* what is the type of each component? */GL_FLOAT,
-	                      /* should it automatically normalise the values stored */GL_FALSE,
-	                      /* once all components of a vertex have been read, how far away (in bytes) is the next vertex? */0,
-	                      /* how far away (in bytes) from the start of the buffer is the first vertex? */reinterpret_cast<GLvoid const*>(0x0));
-
-	// Now, let's allocate a second one for the indices.
-	//
-	// Have the buffer's name stored into `data.ibo`.
-	glGenBuffers(1, /*! \todo fill me */&data.ibo);
-
-	// We still want a 1D-array, but this time it should be a 1D-array of
-	// elements, aka. indices!
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, /*! \todo bind the previously generated Buffer */data.ibo);
-
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, /*! \todo how many bytes should the buffer contain? */
-					static_cast<GLsizeiptr>(index_sets.size() * sizeof(glm::uvec3)),
-	             /* where is the data stored on the CPU? */index_sets.data(),
-	             /* inform OpenGL that the data is modified once, but used often */GL_STATIC_DRAW);
-
-	data.indices_nb = /*! \todo how many indices do we have? */
-						static_cast<GLsizei>(index_sets.size()*3u);
-
-	// All the data has been recorded, we can unbind them.
-	glBindVertexArray(0u);
-	glBindBuffer(GL_ARRAY_BUFFER, 0u);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0u);
-
-	return data;
-}
 
 bonobo::mesh_data
 parametric_shapes::createSphere(float const radius,
