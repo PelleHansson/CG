@@ -137,10 +137,10 @@ edaf80::Assignment4::run()
 	water.add_texture("reflection_texture", cubemap, GL_TEXTURE_CUBE_MAP);
 	water.add_texture("normal_texture", normal_tex, GL_TEXTURE_2D);
 	water.set_program(&water_shader, water_set_uniforms);
-	water.get_transform().SetTranslate(glm::vec3(-50.0f, water_height, -50.0f));
+	
 
 
-	auto skybox_shape = parametric_shapes::createSphere(50.0f, 100u, 100u);
+	auto skybox_shape = parametric_shapes::createSphere(500.0f, 100u, 100u);
 	if (skybox_shape.vao == 0u) {
 		LogError("Failed to retrieve the mesh for the skybox");
 		return;

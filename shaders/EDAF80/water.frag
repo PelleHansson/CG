@@ -20,8 +20,8 @@ out vec4 frag_color;
 
 void main()
 {
-	vec4 deep_c = vec4(0.0, 0.5, 0.5, 1.0);
-	vec4 shallow_c = vec4(0.0, 0.0, 0.1, 1.0);
+	vec4 deep_c =vec4(0.0, 0.0, 0.1, 1.0);
+	vec4 shallow_c =  vec4(0.0, 0.5, 0.5, 1.0);
 
 	vec3 V = normalize(camera_position - fs_in.vertex);
 	vec3 N = normalize(fs_in.normal);
@@ -43,11 +43,12 @@ void main()
 	vec4 water_color =  mix(deep_c, shallow_c,	facing);
 
 	float R0= 0.02037;
-	float fresnel = R0 + (1- R0) * pow((1 -max( dot(V,N),0)),5); 
-
+	float fresnel = R0 + (1- R0) * pow((1 -max( dot(V,N),0)),5);
 	float eta = 1/1.33;
-	if(camera_position.y  < water_height)
-		eta = 1.33;
+	//if (!gl_FrontFacing)
+		//eta = 1.33;
+	
+	
 	vec4 refraction = texture(reflection_texture, refract(-V, N, eta));
 	//vec3 L = normalize(light_position - fs_in.vertex);
 	
