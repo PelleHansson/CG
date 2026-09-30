@@ -37,8 +37,8 @@ void main()
 	vec3 displaced_vertex = vertex;
 
 	float dx, dz, dx2, dz2;
-	displaced_vertex.y +=  wave(vertex.xz, vec2(-1.0, 0.0), 1.0, 0.2, 0.5, 2.0, time, dx, dz);
-	displaced_vertex.y +=  wave(vertex.xz, vec2(-0.7, 0.7), 0.5, 0.4, 1.3, 2.0, time, dx2, dz2);
+	displaced_vertex.y +=  wave(vertex.xz, vec2(-1.0, 0.0), 2.0, 0.2, 1.6, 2.0, time, dx, dz);
+	displaced_vertex.y +=  wave(vertex.xz, vec2(-0.7, 0.7), 1.0, 0.4, 1.3, 2.0, time, dx2, dz2);
 
 	float dhx = dx + dx2;
 	float dhz = dz + dz2;
