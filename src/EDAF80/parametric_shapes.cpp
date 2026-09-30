@@ -18,7 +18,7 @@ parametric_shapes::createQuad(float const width, float const height,
 	unsigned int vertices_nb = (horizontal_split_count+1) * (vertical_split_count+1);
 	std::vector<glm::vec3> vertices = std::vector<glm::vec3>(vertices_nb);
 
-	std::vector<glm::vec3> texcoords = std::vector<glm::vec3>(vertices_nb);
+	std::vector<glm::vec2> texcoords = std::vector<glm::vec2>(vertices_nb);
 	std::vector<glm::uvec3> index_sets = std::vector<glm::uvec3>(2u *horizontal_split_count * vertical_split_count);
 
 	size_t index = 0u;
@@ -28,9 +28,8 @@ parametric_shapes::createQuad(float const width, float const height,
 
 			float const z =  height * static_cast<float>(j) /static_cast<float>(vertical_split_count) ;
 			vertices[index] = glm::vec3(x, 0.0f, z);
-			texcoords[index] = glm::vec3(static_cast<float>(i) / static_cast<float>(horizontal_split_count),
-			                             static_cast<float>(j) / static_cast<float>(vertical_split_count),
-			                             0.0f);
+			texcoords[index] = glm::vec2(static_cast<float>(i) / static_cast<float>(horizontal_split_count),
+			                             static_cast<float>(j) / static_cast<float>(vertical_split_count));
 			++index;
 		}
 	}
@@ -54,70 +53,33 @@ parametric_shapes::createQuad(float const width, float const height,
 	
 	bonobo::mesh_data data;
 
-		//
-		// NOTE:
-		//
-		// Only the values preceeded by a  tag should be changed, the
-		// other ones are correct!
-		//
-
-		// Create a Vertex Array Object: it will remember where we stored the
-		// data on the GPU, and  which part corresponds to the vertices, which
-		// one for the normals, etc.
-		//
-		// The following function will create new Vertex Arrays, and pass their
-		// name in the given array (second argument). Since we only need one,
-		// pass a pointer to `data.vao`.
-		 glGenVertexArrays(1, &data.vao);
-
-		// To be able to store information, the Vertex Array has to be bound
-		// first.
+		glGenVertexArrays(1, &data.vao);
 		glBindVertexArray(data.vao);
-
-		// To store the data, we need to allocate buffers on the GPU. Let's
-		// allocate a first one for the vertices.
-		//
-		// The following function's syntax is similar to `glGenVertexArray()`:
-		// it will create multiple OpenGL objects, in this case buffers, and
-		// return their names in an array. Have the buffer's name stored into
-		// `data.bo`.
 		glGenBuffers(1, &data.bo);
 
-		// Similar to the Vertex Array, we need to bind it first before storing
-		// anything in it. The data stored in it can be interpreted in
-		// different ways. Here, we will say that it is just a simple 1D-array
-		// and therefore bind the buffer to the corresponding target.
+	
 		glBindBuffer(GL_ARRAY_BUFFER, data.bo);
 
-		glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vertices[0]),
-					 /* where is the data stored on the CPU? */vertices.data(),
+		auto const vertices_offset = 0u;
+		auto const vertices_size = static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3));
+		
+		auto const texcoords_offset = vertices_size;
+		auto const texcoords_size =	static_cast<GLsizeiptr>(texcoords.size() * sizeof(glm::vec2));
+
+		glBufferData(GL_ARRAY_BUFFER, vertices_size+ texcoords_size,
+					 /* where is the data stored on the CPU? */nullptr,
 					 /* inform OpenGL that the data is modified once, but used often */GL_STATIC_DRAW);
 
-		// Vertices have been just stored into a buffer, but we still need to
-		// tell Vertex Array where to find them, and how to interpret the data
-		// within that buffer.
-		//
-		// You will see shaders in more detail in lab 3, but for now they are
-		// just pieces of code running on the GPU and responsible for moving
-		// all the vertices to clip space, and assigning a colour to each pixel
-		// covered by geometry.
-		// Those shaders have inputs, some of them are the data we just stored
-		// in a buffer object. We need to tell the Vertex Array which inputs
-		// are enabled, and this is done by the following line of code, which
 		// enables the input for vertices:
-		glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::vertices));
 
-		// Once an input is enabled, we need to explain where the data comes
-		// from, and how it interpret it. When calling the following function,
-		// the Vertex Array will automatically use the current buffer bound to
-		// GL_ARRAY_BUFFER as its source for the data. How to interpret it is
-		// specified below:
-		glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::vertices),
-							  3,
-							  /* what is the type of each component? */GL_FLOAT,
-							  /* should it automatically normalise the values stored */GL_FALSE,
-							  /* once all components of a vertex have been read, how far away (in bytes) is the next vertex? */0,
-							  /* how far away (in bytes) from the start of the buffer is the first vertex? */reinterpret_cast<GLvoid const*>(0x0));
+		
+		glBufferSubData(GL_ARRAY_BUFFER, vertices_offset, vertices_size, static_cast<GLvoid const*>(vertices.data()));
+		glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::vertices));
+		glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::vertices), 3, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(0x0));
+
+		glBufferSubData(GL_ARRAY_BUFFER, texcoords_offset, texcoords_size, static_cast<GLvoid const*>(texcoords.data()));
+		glEnableVertexAttribArray(static_cast<unsigned int>(bonobo::shader_bindings::texcoords));
+		glVertexAttribPointer(static_cast<unsigned int>(bonobo::shader_bindings::texcoords), 2, GL_FLOAT, GL_FALSE, 0, reinterpret_cast<GLvoid const*>(texcoords_offset));
 
 		// Now, let's allocate a second one for the indices.
 		//

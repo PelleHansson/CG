@@ -40,7 +40,7 @@ void
 edaf80::Assignment4::run()
 {
 	// Set up the camera
-	mCamera.mWorld.SetTranslate(glm::vec3(-40.0f, 14.0f, 6.0f));
+	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 14.0f, 0.0f));
 	mCamera.mWorld.LookAt(glm::vec3(0.0f));
 	mCamera.mMouseSensitivity = glm::vec2(0.003f);
 	mCamera.mMovementSpeed = glm::vec3(3.0f); // 3 m/s => 10.8 km/h
@@ -66,6 +66,14 @@ edaf80::Assignment4::run()
 		LogError("Failed to load water shader");
 		return;
 	}
+	GLuint skybox_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Skybox",
+		{ { ShaderType::vertex, "EDAF80/skybox.vert" },
+		{ ShaderType::fragment, "EDAF80/skybox.frag" } },
+		skybox_shader);
+
+	if (skybox_shader == 0u)
+		LogError("Failed to load skybox shader");
 
 	//
 	// Todo: Insert the creation of other shader programs.
@@ -88,25 +96,64 @@ edaf80::Assignment4::run()
 	float frequency = 0.2f;
 	float phase = 0.5f;
 	float sharpness = 2.0f;
-	auto const water_set_uniforms = [&amplitude, &direction, &frequency, &phase, &sharpness, &light_position, &elapsed_time_s, &camera_position](GLuint program) {
-		glUniform1f(glGetUniformLocation(program, "amplitude"), amplitude);
-		glUniform2fv(glGetUniformLocation(program, "direction"), 1, glm::value_ptr(direction));
-		glUniform1f(glGetUniformLocation(program, "frequency"), frequency);
-		glUniform1f(glGetUniformLocation(program, "phase"), phase);
-		glUniform1f(glGetUniformLocation(program, "sharpness"), sharpness);
+
+	auto loadCubemap = [](const std::string& cubename) {
+		std::cout << "Loaded cubemap: " << cubename << std::endl;
+		return bonobo::loadTextureCubeMap(
+			config::resources_path("cubemaps/" + cubename + "/posx.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/negx.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/posy.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/negy.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/posz.jpg"),
+			config::resources_path("cubemaps/" + cubename + "/negz.jpg"),
+			true
+		);
+		};
+	GLuint cubemap = loadCubemap("NissiBeach2");
+	auto const set_uniforms = [&light_position](GLuint program) {
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		};
+	float water_height = -40;
+	auto const water_set_uniforms = [&light_position, &elapsed_time_s, &camera_position,&cubemap,&water_height](GLuint program) {
 		glUniform1f(glGetUniformLocation(program, "time"), elapsed_time_s);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+		glUniform1f(glGetUniformLocation(program, "water_height"), water_height);
+
+
+		
 		
 	};
-	Node water;
-	water.set_geometry(quad);
-	water.set_program(&water_shader, water_set_uniforms);
 
+	Node water;
+	auto load2dtex = [](const std::string& texname) {
+		return bonobo::loadTexture2D(
+			config::resources_path("textures/" + texname),
+			true
+		);
+	};
+	auto normal_tex = load2dtex("waves.png");
+	water.set_geometry(quad);
+	water.add_texture("reflection_texture", cubemap, GL_TEXTURE_CUBE_MAP);
+	water.add_texture("normal_texture", normal_tex, GL_TEXTURE_2D);
+	water.set_program(&water_shader, water_set_uniforms);
+	water.get_transform().SetTranslate(glm::vec3(-50.0f, water_height, -50.0f));
+
+
+	auto skybox_shape = parametric_shapes::createSphere(50.0f, 100u, 100u);
+	if (skybox_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the skybox");
+		return;
+	}
+
+	Node skybox;
+	skybox.set_geometry(skybox_shape);
+	skybox.add_texture("cubemap", cubemap, GL_TEXTURE_CUBE_MAP);
+	skybox.set_program(&skybox_shader, set_uniforms);
 	//
 	// Todo: Load your geometry
 	//
-	
+
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -189,7 +236,7 @@ edaf80::Assignment4::run()
 			//
 			// Todo: Render all your geometry here.
 			//
-			
+			skybox.render(mCamera.GetWorldToClipMatrix());
 			water.render(mCamera.GetWorldToClipMatrix());
 		}
 
