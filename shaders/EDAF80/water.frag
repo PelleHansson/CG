@@ -20,26 +20,35 @@ out vec4 frag_color;
 
 void main()
 {
+	// V : 점 -> 카메라 방향
 	vec3 V = normalize(camera_position - fs_in.vertex);
 
+	// normal map을 크기/속도가 다른 3개 위치에서 읽고, 색(0~1) -> 방향(-1~1)으로 변환 
 	vec3 n0 = texture(WavesTexture, fs_in.normalCoord0).xyz * 2.0 - 1.0;
 	vec3 n1 = texture(WavesTexture, fs_in.normalCoord1).xyz * 2.0 - 1.0;
 	vec3 n2 = texture(WavesTexture, fs_in.normalCoord2).xyz * 2.0 - 1.0;
 
-	vec3 n_bump = normalize(n0 + n1 + n2); // normal map에서 읽은 화살표 n_bump
+	// normal map에서 읽은 화살표 n_bump으로 합치기 
+	vec3 n_bump = normalize(n0 + n1 + n2); 
 	mat3 TBN = mat3(normalize(fs_in.tangent), normalize(fs_in.binormal), normalize(fs_in.normal));
-	vec3 n = normalize(TBN * n_bump); // 잔물결까지 반영된 최종 normal
+	// 잔물결까지 반영된 최종 normal
+	vec3 n = normalize(TBN * n_bump); 
 
-	float facing = 1.0 - max(dot(V, normalize(n)), 0.0);
+	// 기본 물 색
+	float facing = 1.0 - max(dot(V, n), 0.0);
 	vec4 deep = vec4(0.0, 0.0, 0.1, 1.0);
 	vec4 shallow = vec4(0.0, 0.5, 0.5, 1.0);
+
+	// 반사
 	vec3 R = reflect(-V, n); // 반사 방향
 	vec4 reflection = texture(SkyboxTexture, R);
 	vec4 water_color = mix(deep, shallow, facing);
 
-	float R0 = 0.02037; // 물 반사율 
-	float fresnel = R0 + (1.0 - R0) * pow((1.0 - dot(V, n)), 5.0);
+	// Fresnel
+	float R0 = 0.02037; // 공기->물 반사율
+	float fresnel = R0 + (1.0 - R0) * pow((1.0 - max( dot(V, n), 0)), 5.0);
 
+	// 굴절
 	vec3 T = refract(-V, n, 1.0 / 1.33); // 굴절 방향
 	vec4 refraction = texture(SkyboxTexture, T);
 

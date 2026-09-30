@@ -23,10 +23,12 @@ float wave(vec2 position, vec2 direction, float amplitude,
            float frequency, float phase, float sharpness, float time,
 		   out float dx, out float dz)
 {
+	// sth = (Di,xx + Di,zz) * fi + t * pi
 	float sth= dot(position, direction)*frequency + time * phase;
 	float alpha = sin(sth)*0.5 +0.5;
 
-	float sth2 = 0.5*sharpness*frequency*amplitude*pow(alpha, sharpness-1.0)*cos(sth);
+	// sth2 = 0.5 * ki * fi * Ai * αk−1 * cos(sth)
+	float sth2 = 0.5*sharpness*frequency*amplitude* pow(alpha, sharpness-1.0) *cos(sth);
 	dx = sth2 * direction.x;
 	dz = sth2 * direction.y; //direction의 두 번째 칸 = z
 
@@ -51,16 +53,17 @@ void main()
 	vec3 t = vec3(1.0, dHdx, 0.0);
 	vec3 b = vec3(0.0, dHdz, 1.0);
 
-	// world 좌표로 변환
+	// world 좌표로 변환하고 frag로 보내기
 	vs_out.vertex = vec3(vertex_model_to_world * vec4(displaced_vertex, 1.0));
 	vs_out.texcoord = texcoord;
 	vs_out.normal = vec3(normal_model_to_world * vec4(n, 0.0));
-
 	vs_out.tangent = vec3(vertex_model_to_world * vec4(t,0.0));
 	vs_out.binormal = vec3(vertex_model_to_world * vec4(b,0.0));
+
 	gl_Position = vertex_world_to_clip * vertex_model_to_world *vec4(displaced_vertex, 1.0);
 
-	vec2 texScale = vec2(8, 4);
+	// normal map 읽을 좌표 3개
+	vec2 texScale = vec2(8, 4); // repeat
 	float normalTime = mod(elapsed_time_s, 100.0);
 	vec2 normalSpeed = vec2(-0.05, 0.0);
 	vs_out.normalCoord0.xy = texcoord.xy * texScale + normalTime * normalSpeed;
