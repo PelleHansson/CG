@@ -57,17 +57,56 @@ edaf80::Assignment4::run()
 		LogError("Failed to load fallback shader");
 		return;
 	}
+	GLuint water_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Water",
+	                                         { { ShaderType::vertex, "EDAF80/water.vert" },
+	                                           { ShaderType::fragment, "EDAF80/water.frag" } },
+	                                         water_shader);
+	if (water_shader == 0u) {
+		LogError("Failed to load water shader");
+		return;
+	}
 
 	//
 	// Todo: Insert the creation of other shader programs.
 	//       (Check how it was done in assignment 3.)
 	//
 
+
 	float elapsed_time_s = 0.0f;
+	auto quad = parametric_shapes::createQuad(100.0f, 100.0f, 1000u, 1000u);
+	
+	if (quad.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the quad");
+		return;
+	}
+	glm::vec3 light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
+
+	
+	float amplitude = 1.0f;
+	glm::vec2 direction = glm::vec2(-1.0f, 0.0f);
+	float frequency = 0.2f;
+	float phase = 0.5f;
+	float sharpness = 2.0f;
+	auto const water_set_uniforms = [&amplitude, &direction, &frequency, &phase, &sharpness, &light_position, &elapsed_time_s, &camera_position](GLuint program) {
+		glUniform1f(glGetUniformLocation(program, "amplitude"), amplitude);
+		glUniform2fv(glGetUniformLocation(program, "direction"), 1, glm::value_ptr(direction));
+		glUniform1f(glGetUniformLocation(program, "frequency"), frequency);
+		glUniform1f(glGetUniformLocation(program, "phase"), phase);
+		glUniform1f(glGetUniformLocation(program, "sharpness"), sharpness);
+		glUniform1f(glGetUniformLocation(program, "time"), elapsed_time_s);
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+		
+	};
+	Node water;
+	water.set_geometry(quad);
+	water.set_program(&water_shader, water_set_uniforms);
 
 	//
 	// Todo: Load your geometry
 	//
+	
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -150,6 +189,8 @@ edaf80::Assignment4::run()
 			//
 			// Todo: Render all your geometry here.
 			//
+			
+			water.render(mCamera.GetWorldToClipMatrix());
 		}
 
 

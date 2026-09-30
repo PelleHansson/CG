@@ -14,25 +14,45 @@ parametric_shapes::createQuad(float const width, float const height,
                               unsigned int const horizontal_split_count,
                               unsigned int const vertical_split_count)
 {
-	auto const vertices = std::array<glm::vec3, 4>{
-		glm::vec3(0.0f,  0.0f,   0.0f),
-		glm::vec3(width, 0.0f,   0.0f),
-		glm::vec3(width, height, 0.0f),
-		glm::vec3(0.0f,  height, 0.0f)
-	};
 
-	auto const index_sets = std::array<glm::uvec3, 2>{
-		glm::uvec3(0u, 1u, 2u),
-		glm::uvec3(0u, 2u, 3u)
-	};
+	unsigned int vertices_nb = (horizontal_split_count+1) * (vertical_split_count+1);
+	std::vector<glm::vec3> vertices = std::vector<glm::vec3>(vertices_nb);
 
-	bonobo::mesh_data data;
+	std::vector<glm::vec3> texcoords = std::vector<glm::vec3>(vertices_nb);
+	std::vector<glm::uvec3> index_sets = std::vector<glm::uvec3>(2u *horizontal_split_count * vertical_split_count);
 
-	if (horizontal_split_count > 0u || vertical_split_count > 0u)
-	{
-		LogError("parametric_shapes::createQuad() does not support tesselation.");
-		return data;
+	size_t index = 0u;
+	for(unsigned int i = 0u; i < horizontal_split_count +1 ; ++i) {
+		float const x =  width * static_cast<float>(i) / static_cast<float>(horizontal_split_count) ;
+		for (unsigned int j = 0u; j < vertical_split_count +1 ; ++j) {
+
+			float const z =  height * static_cast<float>(j) /static_cast<float>(vertical_split_count) ;
+			vertices[index] = glm::vec3(x, 0.0f, z);
+			texcoords[index] = glm::vec3(static_cast<float>(i) / static_cast<float>(horizontal_split_count),
+			                             static_cast<float>(j) / static_cast<float>(vertical_split_count),
+			                             0.0f);
+			++index;
+		}
 	}
+
+	index = 0u;
+	int const v_s_count = vertical_split_count + 1;
+	
+	for (unsigned int i = 0u; i < horizontal_split_count; ++i) {
+		for (unsigned int j = 0u; j < vertical_split_count; ++j) {
+
+
+			index_sets[index++] = glm::uvec3(v_s_count * i + j,	//current node
+				v_s_count * (i + 1) + (j), //next right
+				v_s_count * (i + 1) + (j + 1)); //diagonal node	
+	
+			index_sets[index++] = glm::uvec3(v_s_count * i + j,	//current node
+				v_s_count * (i + 1) + (j + 1), //diagonal
+				v_s_count * (i)+(j + 1));  // next one above
+		}
+	}
+	
+	bonobo::mesh_data data;
 
 		//
 		// NOTE:
