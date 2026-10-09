@@ -140,7 +140,7 @@ edaf80::Assignment4::run()
 	
 
 
-	auto skybox_shape = parametric_shapes::createSphere(500.0f, 100u, 100u);
+	auto skybox_shape = parametric_shapes::createSphere(20.0f, 100u, 100u);
 	if (skybox_shape.vao == 0u) {
 		LogError("Failed to retrieve the mesh for the skybox");
 		return;
@@ -236,7 +236,10 @@ edaf80::Assignment4::run()
 			//
 			// Todo: Render all your geometry here.
 			//
+			skybox.get_transform().SetTranslate(camera_position);
+
 			skybox.render(mCamera.GetWorldToClipMatrix());
+			glClear(GL_DEPTH_BUFFER_BIT );
 			water.render(mCamera.GetWorldToClipMatrix());
 		}
 
