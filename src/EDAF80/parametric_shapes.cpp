@@ -41,13 +41,14 @@ parametric_shapes::createQuad(float const width, float const height,
 		for (unsigned int j = 0u; j < vertical_split_count; ++j) {
 
 
-			index_sets[index++] = glm::uvec3(v_s_count * i + j,	//current node
-				v_s_count * (i + 1) + (j), //next right
-				v_s_count * (i + 1) + (j + 1)); //diagonal node	
-	
-			index_sets[index++] = glm::uvec3(v_s_count * i + j,	//current node
-				v_s_count * (i + 1) + (j + 1), //diagonal
-				v_s_count * (i)+(j + 1));  // next one above
+			unsigned int a = v_s_count * i + j;
+			unsigned int b = v_s_count * (i + 1) + j;
+			unsigned int c = v_s_count * (i + 1) + (j + 1);
+			unsigned int d = v_s_count * i + (j + 1);
+
+			// Reverse winding
+			index_sets[index++] = glm::uvec3(a, c, b);
+			index_sets[index++] = glm::uvec3(a, d, c);
 		}
 	}
 	

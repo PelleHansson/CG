@@ -91,11 +91,7 @@ edaf80::Assignment4::run()
 	glm::vec3 light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 
 	
-	float amplitude = 1.0f;
-	glm::vec2 direction = glm::vec2(-1.0f, 0.0f);
-	float frequency = 0.2f;
-	float phase = 0.5f;
-	float sharpness = 2.0f;
+	
 
 	auto loadCubemap = [](const std::string& cubename) {
 		std::cout << "Loaded cubemap: " << cubename << std::endl;
@@ -113,16 +109,11 @@ edaf80::Assignment4::run()
 	auto const set_uniforms = [&light_position](GLuint program) {
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		};
-	float water_height = -40;
-	auto const water_set_uniforms = [&light_position, &elapsed_time_s, &camera_position,&cubemap,&water_height](GLuint program) {
+	
+	auto const water_set_uniforms = [&light_position, &elapsed_time_s, &camera_position,&cubemap](GLuint program) {
 		glUniform1f(glGetUniformLocation(program, "time"), elapsed_time_s);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
-		glUniform1f(glGetUniformLocation(program, "water_height"), water_height);
-
-
-		
-		
 	};
 
 	Node water;
