@@ -15,6 +15,7 @@
 #include <clocale>
 #include <stdexcept>
 #include <random>
+#include <vector>
 
 edaf80::Assignment5::Assignment5(WindowManager& windowManager) :
 	mCamera(0.5f * glm::half_pi<float>(),
@@ -45,8 +46,10 @@ struct ObjRef {
 	float hightOffset = 0;
 	float stability = 1; //how much is it affected but the waves
 	float BSradius;
+	float turnSpeed;
+
 	//float verticalSpeed;
-	ObjRef(Node* n, float r) : node(n), BSradius(r){}
+	ObjRef(Node* n, float r, float t) : node(n), BSradius(r), turnSpeed(t){}
 };
 static bool intersects(ObjRef a, ObjRef b) {
 	glm::vec3 dif = a.node->get_transform().GetTranslation()- b.node->get_transform().GetTranslation();
@@ -63,7 +66,7 @@ static float wave(glm::vec2 position, glm::vec2 direction, float amplitude, floa
 
 	return amplitude * pow(sin(theta) * 0.5 + 0.5, sharpness);
 }
-static glm::quat waveRotation(ObjRef object, float dx, float dz) {
+static glm::quat waveRotation(ObjRef &  object, float dx, float dz) {
 	glm::vec3 waterNormal = glm::normalize(glm::vec3(-dx * object.stability, 1.0f, -dz * object.stability));
 	glm::vec3 objectdir = glm::normalize(-object.node->get_transform().GetMatrix()[2]);
 
@@ -77,7 +80,7 @@ static glm::quat waveRotation(ObjRef object, float dx, float dz) {
 	
 }
 
-static void waterfloat(ObjRef object, float time,float deltaTime_s) {
+static void waterfloat(ObjRef &  object, float time,float deltaTime_s) {
 	glm::vec3 pos = object.node->get_transform().GetTranslation();
 
 	float height = object.hightOffset;
@@ -101,9 +104,32 @@ static void waterfloat(ObjRef object, float time,float deltaTime_s) {
 	glm::vec3 axis = glm::axis(waveRot);
 	object.node->get_transform().SetRotate(angle, glm::normalize(axis));
 }
+static void npcBoatMove(ObjRef  & b, float time, float deltaTime_s, glm::vec3 target) {
+	glm::vec3 pos = b.node->get_transform().GetTranslation();
+	glm::vec3 targetdir = target- pos;
+	float dirAngle = std::atan2(-targetdir.x, -targetdir.z);
+	float angleDiff = std::atan2(std::sin(dirAngle - b.angle),std::cos(dirAngle - b.angle));
+
+	
+	float turn = glm::clamp(angleDiff, -b.turnSpeed * deltaTime_s, b.turnSpeed * deltaTime_s);
+	b.angle += turn;
+	
+	b.node->get_transform().SetRotateY(b.angle);
+	glm::vec3 dir = glm::normalize(-b.node->get_transform().GetMatrix()[2]);
+	float angleDiffMag = glm::abs(angleDiff);
+	float alignment = 1.0f - angleDiffMag / glm::pi<float>();
+
+	b.speed = 30.0f * (glm::max(alignment, 1.0f)/4 + 0.75);
+
+	pos += b.speed * dir * deltaTime_s;
+	b.node->get_transform().SetTranslate(pos);
 
 
-static void boatMove(ObjRef b,float time , float deltaTime_s) {
+
+
+}
+
+static void boatMove(ObjRef &  b,float time , float deltaTime_s) {
 
 	b.node->get_transform().SetRotateY(b.angle);
 	
@@ -170,7 +196,13 @@ edaf80::Assignment5::run()
 		phongboat_shader);
 	if (phongboat_shader == 0u)
 		LogError("Failed to load diffuse shader");
-
+	GLuint phongnpc_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Phongnpc",
+		{ { ShaderType::vertex, "EDAF80/phongnpc.vert" },
+		 { ShaderType::fragment, "EDAF80/phongnpc.frag" } },
+		phongnpc_shader);
+	if (phongnpc_shader == 0u)
+		LogError("Failed to load diffuse shader");
 
 	GLuint phong_shader = 0u;
 
@@ -204,6 +236,7 @@ edaf80::Assignment5::run()
 	}
 	glm::vec3 light_position = glm::vec3(1000.0f, 50.0f, 500.0f);
 
+	float invincibility = 0.0f;
 
 
 	auto loadCubemap = [](const std::string& cubename) {
@@ -230,8 +263,8 @@ edaf80::Assignment5::run()
 
 		};
 	bool use_normal_mapping = false;
-	auto const phong_set_uniforms = [&use_normal_mapping, &light_position, &camera_position](GLuint program) {
-
+	auto const phong_set_uniforms = [&use_normal_mapping, &light_position, &camera_position,&invincibility](GLuint program) {
+		glUniform1i(glGetUniformLocation(program, "hit"), invincibility > 0 ? 1 : 0);
 		glUniform1i(glGetUniformLocation(program, "use_normal_mapping"), use_normal_mapping ? 1 : 0);
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
@@ -280,7 +313,7 @@ edaf80::Assignment5::run()
 	std::vector<bonobo::mesh_data> const boatmeshes = bonobo::loadObjects(config::resources_path("game/boat/boat.obj"));
 
 
-	LogInfo("Boat meshes loaded: {}", boatmeshes.size());
+
 	if (boatmeshes.empty()) {
 		LogError("Failed to load the boat geometry: exiting.");
 		bonobo::deinit();
@@ -288,12 +321,11 @@ edaf80::Assignment5::run()
 	}
 
 	Node b;
-	ObjRef boat = ObjRef(&b, 2);
+	ObjRef boat = ObjRef(&b, 2, 0);
 
 	boat.node->get_transform().SetTranslate(glm::vec3(500.0f, 0.0f, 500.0f));
 	std::vector<Node> boatChildren;
 	boatChildren.resize(boatmeshes.size());
-	GLuint textureFallbackID = normal_tex;
 	for (size_t i = 0; i < boatmeshes.size(); ++i) {
 		Node& childNode = boatChildren[i];
 		childNode.set_geometry(boatmeshes[i]);
@@ -320,6 +352,64 @@ edaf80::Assignment5::run()
 	boat.stability = 0.8f;
 	boat.hightOffset = 0.2f;
 
+	bonobo::material_data boat2_material;
+	boat2_material.ambient = glm::vec3(0.2f, 0.1f, 0.1f);
+	boat2_material.diffuse = glm::vec3(0.2, 1.0, 0.2);
+	boat2_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+	boat2_material.shininess = 10.0f;
+
+	int boatCount = 5;
+	std::vector<ObjRef> npcBoats;
+	std::vector<Node> npcNodes;
+	std::vector<std::vector<Node>> npcChildren;
+
+	npcBoats.reserve(boatCount);
+	npcNodes.reserve(boatCount);
+	npcChildren.reserve(boatCount);
+	Node b2;
+	float s = 0;
+	for (int i = 0; i < boatCount; i++) {
+		npcNodes.emplace_back();
+		Node& npc = npcNodes.back();
+
+		ObjRef npcBoat(&npc, 1, s + 0.6f);
+		glm::vec3 newPos = glm::vec3(randDist(gen) * 200 + 400, 0, randDist(gen) * 200 + 400);
+		npcBoat.node->get_transform().SetTranslate(newPos);
+		npcBoat.node->get_transform().SetScale(1.0f);
+		npcBoat.stability = 0.8f;
+		npcBoat.hightOffset = 0.2f;
+
+		npcChildren.emplace_back();
+		std::vector<Node>& children = npcChildren.back();
+		children.resize(boatmeshes.size());
+		for (size_t i = 0; i < boatmeshes.size(); ++i) {
+			Node& childNode = children[i];
+			childNode.set_geometry(boatmeshes[i]);
+			bool hasDiffuse = false;
+			bool hasNormal = false;
+			childNode.set_material_constants(boat2_material);
+			for (const auto& binding : boatmeshes[i].bindings) {
+
+				if (binding.first == "diffuse_texture") hasDiffuse = true;
+				if (binding.first == "normals_texture") {
+					hasNormal = true;
+					childNode.add_texture("normal_texture", binding.second, GL_TEXTURE_2D);
+					continue;
+				}
+				childNode.add_texture(binding.first, binding.second, GL_TEXTURE_2D);
+			}
+			childNode.set_program(&phongnpc_shader, phong_set_uniforms);
+
+		}
+		for (size_t i = 0; i < children.size(); ++i) {
+			npcBoat.node->add_child(&children[i]);
+		}
+	
+		npcBoats.push_back(npcBoat);
+		s += 0.5 / boatCount;
+	}
+
+
 
 
 	std::vector<bonobo::mesh_data> const mesh = bonobo::loadObjects(config::resources_path("game/barrel/Barrel.obj"));
@@ -337,22 +427,34 @@ edaf80::Assignment5::run()
 	demo_material.shininess = 0.2f;
 	bonobo::mesh_data const& barrelMesh = mesh.front();
 
-	Node bar;
-	ObjRef barrel(&bar,1);
-	bool hasDiffuse = false;
-	bool hasNormal = false;
-	barrel.node->set_geometry(barrelMesh);
-	
-	barrel.node->add_texture("diffuse_texture", bonobo::loadTexture2D(config::resources_path("game/barrel/barrel_dif.png"),true) , GL_TEXTURE_2D);
-	barrel.node->add_texture("specular_texture", bonobo::loadTexture2D(config::resources_path("game/barrel/Image_1.png"), true), GL_TEXTURE_2D);
-	barrel.node->add_texture("normal_texture", bonobo::loadTexture2D(config::resources_path("game/barrel/barrel_nor.png"), true), GL_TEXTURE_2D);
+	int barrelCount = 5;
+	std::vector<Node> barrelNodes;
+	std::vector<ObjRef> barrels;
 
-	barrel.node->set_material_constants(demo_material);
-	barrel.node->set_program(&phong_shader, phong_set_uniforms);
-	barrel.node->get_transform().SetTranslate(glm::vec3(520, 5, 520));
-	barrel.node->get_transform().SetScale(0.02f);
-	barrel.stability = 1.3f;
-	barrel.hightOffset = -0.6f;
+	barrelNodes.reserve(barrelCount);
+	barrels.reserve(barrelCount);
+	for (int i = 0; i < barrelCount; i++) {
+		barrelNodes.emplace_back();
+		Node& bar = barrelNodes.back();
+		ObjRef barrel(&bar, 1, 0);
+		bool hasDiffuse = false;
+		bool hasNormal = false;
+		barrel.node->set_geometry(barrelMesh);
+		barrel.node->add_texture("diffuse_texture", bonobo::loadTexture2D(config::resources_path("game/barrel/barrel_dif.png"), true), GL_TEXTURE_2D);
+		barrel.node->add_texture("specular_texture", bonobo::loadTexture2D(config::resources_path("game/barrel/Image_1.png"), true), GL_TEXTURE_2D);
+		barrel.node->add_texture("normal_texture", bonobo::loadTexture2D(config::resources_path("game/barrel/barrel_nor.png"), true), GL_TEXTURE_2D);
+
+		barrel.node->set_material_constants(demo_material);
+		barrel.node->set_program(&phong_shader, phong_set_uniforms);
+		glm::vec3 newPos = glm::vec3(randDist(gen) * 200 + 400, 0, randDist(gen) * 200 + 400);
+		barrel.node->get_transform().SetTranslate(newPos);
+
+		barrel.node->get_transform().SetScale(0.02f);
+		barrel.stability = 1.3f;
+		barrel.hightOffset = -0.6f;
+		barrels.push_back(barrel);
+	}
+	
 
 
 	glClearDepthf(1.0f);
@@ -376,6 +478,7 @@ edaf80::Assignment5::run()
 	float orbitYaw = 0.0f;
 	float orbitPitch = 0.4f;
 	float orbitRadius = 30.0f;
+	int score = 0;
 
 	
 	while (!glfwWindowShouldClose(window)) {
@@ -473,49 +576,60 @@ edaf80::Assignment5::run()
 			glCullFace(GL_BACK);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			water.render(mCamera.GetWorldToClipMatrix());
-
-			waterfloat(barrel, elapsed_time_s, deltaTime_s);
-			barrel.node->render(mCamera.GetWorldToClipMatrix());
-		//	glm::vec3 barrelrot = glm::vec3(barrel.get_transform().GetMatrix()[2]) + glm::vec3(randDist(gen)*deltaTime_s, randDist(gen)*deltaTime_s, deltaTime_s);
-			//barrel.get_transform().SetRotate(barrelrot.);
+			for (ObjRef& b : barrels) {
+				waterfloat(b, elapsed_time_s, deltaTime_s);
+				b.node->render(mCamera.GetWorldToClipMatrix());
+			}
+	
 			boatMove(boat, elapsed_time_s, deltaTime_s);
 			for (size_t i = 0; i < boatChildren.size(); ++i) {
-				// This forces the vertex shader to compound: Camera * Parent * Mesh Offset
 				boatChildren[i].render(mCamera.GetWorldToClipMatrix(), boat.node->get_transform().GetMatrix());
+			}
+
+			for (size_t i = 0; i < npcBoats.size(); ++i) {
+				npcBoatMove(npcBoats[i], elapsed_time_s, deltaTime_s, boatPos);
+				waterfloat(npcBoats[i], elapsed_time_s, deltaTime_s);
+				for (Node& child : npcChildren[i]) {
+					child.render(mCamera.GetWorldToClipMatrix(), npcBoats[i].node->get_transform().GetMatrix());
+				}
 			}
 		}
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		if (intersects(boat, barrel)) {
-			glm::vec3 newPos = glm::vec3(randDist(gen)*200 + 400, 0, randDist(gen)*200 + 400);
-			barrel.node->get_transform().SetTranslate(newPos);
-		
-
-			std::cout <<newPos << "\n";
+		for (ObjRef& b : barrels) {
+			if (intersects(boat, b)) {
+				glm::vec3 newPos = glm::vec3(randDist(gen) * 200 + 400, 0, randDist(gen) * 200 + 400);
+				b.node->get_transform().SetTranslate(newPos);
+				score++;
+				std::cout << "Score: " << score << "\n";
+			}
 		}
-
+		if (invincibility <= 0) {
+			for (ObjRef& b : npcBoats) {
+				if (intersects(b, boat)) {
+					invincibility = 1.5f;
+					//damgage
+					std::cout << "HIT!!\n";
+					score = glm::max(0, score - 10);
+					std::cout << "Score: " << score << "\n";
+				}
+			}
+		}
+		else
+			invincibility -= deltaTime_s;
 
 		//
 		// Todo: If you want a custom ImGUI window, you can set it up
 		//       here
 		//
-		bool const opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
-		if (opened) {
-			ImGui::Checkbox("Show basis", &show_basis);
-			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
-			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
-		}
-		ImGui::End();
+		
 
-		if (show_basis)
-			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());
-		if (show_logs)
-			Log::View::Render();
+		
 		mWindowManager.RenderImGuiFrame(show_gui);
 
 		glfwSwapBuffers(window);
 	}
+	
 }
 
 int main()

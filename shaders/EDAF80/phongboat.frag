@@ -14,6 +14,7 @@ uniform int has_diffuse_texture;
 uniform sampler2D normal_texture;
 uniform int has_normal_texture;
 
+uniform int hit;
 //uniform int use_normal_mapping;
 //uniform mat4 normal_model_to_world;
 
@@ -44,7 +45,9 @@ void main()
 
 	vec3 ambient = ambient_colour * texture(diffuse_texture, fs_in.texcoord).rgb;;
 
-
+	if (hit > 0){
+	ambient.r =0.5;
+	}
 
 	frag_color = vec4(diffuse + ambient   , 1.0);
 
