@@ -9,9 +9,11 @@ out/
 dependencies/
 
 # Resources folder
-res/
+res/*
 res.zip
 
+!res/game/
+!res/game/**
 # Application produced files
 imgui.ini
 log.txt
