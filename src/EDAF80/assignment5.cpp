@@ -494,8 +494,11 @@ edaf80::Assignment5::run()
 
 		glfwPollEvents();
 		inputHandler.Advance();
-		//mCamera.Update(deltaTimeUs, inputHandler, true, true);
+		glm::vec3 boatPos = boat.node->get_transform().GetTranslation();
+		mCamera.mWorld.LookAt(boatPos);
+		mCamera.Update(deltaTimeUs, inputHandler, true, true);
 		
+		camera_position = mCamera.mWorld.GetTranslation();
 		float deltaTime_s = static_cast<float>(deltaTimeUs.count()) / 1000000.0f;
 
 
@@ -521,7 +524,6 @@ edaf80::Assignment5::run()
 		glViewport(0, 0, framebuffer_width, framebuffer_height);
 
 
-		camera_position = mCamera.mWorld.GetTranslation();
 		//
 		
 		if ((inputHandler.GetKeycodeState(GLFW_KEY_W) & PRESSED))  boat.speed = glm::min(boat.speed + (10.0f * deltaTime_s), 30.0f);
@@ -558,10 +560,8 @@ edaf80::Assignment5::run()
 		cameraOffset.x = orbitRadius * std::cos(orbitPitch) * std::sin(orbitYaw);
 		cameraOffset.y = orbitRadius * std::sin(orbitPitch);
 		cameraOffset.z = orbitRadius * std::cos(orbitPitch) * std::cos(orbitYaw);
-
-		glm::vec3 boatPos = boat.node->get_transform().GetTranslation();
 		mCamera.mWorld.SetTranslate(cameraOffset + boatPos);
-		mCamera.mWorld.LookAt(boatPos);
+
 		mousePos = newMousePos;
 
 		mWindowManager.NewImGuiFrame();
