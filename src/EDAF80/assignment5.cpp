@@ -353,7 +353,7 @@ edaf80::Assignment5::run()
 	boat.hightOffset = 0.2f;
 
 	bonobo::material_data boat2_material;
-	boat2_material.ambient = glm::vec3(0.2f, 0.1f, 0.1f);
+	boat2_material.ambient = glm::vec3(0.3f, 0.3f, 0.3f);
 	boat2_material.diffuse = glm::vec3(0.2, 1.0, 0.2);
 	boat2_material.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 	boat2_material.shininess = 10.0f;

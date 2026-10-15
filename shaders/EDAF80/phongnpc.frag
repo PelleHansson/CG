@@ -48,11 +48,11 @@ void main()
 
 	frag_color = vec4(diffuse + ambient   , 1.0);
 
-	if(has_normal_texture != 0) {
-    	vec3 normal_map = texture(normal_texture, fs_in.texcoord).rgb * 2.0 - 1.0;
-		N = normalize(fs_in.TBN * normal_map);
-		frag_color = vec4(N, 1.0);
-	}
+	//if(has_normal_texture != 0) {
+   // 	vec3 normal_map = texture(normal_texture, fs_in.texcoord).rgb * 2.0 - 1.0;
+	//	N = normalize(fs_in.TBN * normal_map);
+	//	frag_color = vec4(N, 1.0);
+	//}
 
 //	vec3 R = reflect(-L,N);
 
