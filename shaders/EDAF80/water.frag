@@ -36,13 +36,17 @@ void main()
 
 	// 기본 물 색
 	float facing = 1.0 - max(dot(V, n), 0.0);
-	vec4 deep = vec4(0.0, 0.0, 0.1, 1.0);
-	vec4 shallow = vec4(0.0, 0.5, 0.5, 1.0);
+	vec4 deep = vec4(0.6, 0.2, 0.0, 1.0);
+	vec4 shallow = vec4(1.0, 0.6, 0.2, 1.0);
 
 	// 반사
 	vec3 R = reflect(-V, n); // 반사 방향
 	vec4 reflection = texture(SkyboxTexture, R);
+
 	vec4 water_color = mix(deep, shallow, facing);
+
+	// 주황바다
+	frag_color = water_color;
 
 	// Fresnel
 	float R0 = 0.02037; // 공기->물 반사율
@@ -53,5 +57,6 @@ void main()
 	vec4 refraction = texture(SkyboxTexture, T);
 
 	// frag_color = water_color + reflection * fresnel;
-	frag_color = water_color + reflection * fresnel + refraction * (1.0 - fresnel);
+	// frag_color = water_color + reflection * fresnel + refraction * (1.0 - fresnel);
+
 }
