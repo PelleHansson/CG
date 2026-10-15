@@ -495,7 +495,6 @@ edaf80::Assignment5::run()
 		glfwPollEvents();
 		inputHandler.Advance();
 		glm::vec3 boatPos = boat.node->get_transform().GetTranslation();
-		mCamera.mWorld.LookAt(boatPos);
 		mCamera.Update(deltaTimeUs, inputHandler, true, true);
 		
 		camera_position = mCamera.mWorld.GetTranslation();
@@ -561,6 +560,7 @@ edaf80::Assignment5::run()
 		cameraOffset.y = orbitRadius * std::sin(orbitPitch);
 		cameraOffset.z = orbitRadius * std::cos(orbitPitch) * std::cos(orbitYaw);
 		mCamera.mWorld.SetTranslate(cameraOffset + boatPos);
+		mCamera.mWorld.LookAt(boatPos);
 
 		mousePos = newMousePos;
 
