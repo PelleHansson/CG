@@ -65,10 +65,14 @@ Color traceRay(const Ray &r, Scene scene, int depth) {
     const Vec3 lightPos(0.0f, 30.0f, -5.0f);
     Vec3 lightDir = lightPos - hit.position;
     lightDir.normalize();
-   
     directColor = hit.material.color;
-
     c = directColor * std::max(0.0f, hit.normal * lightDir);
+   
+    if (scene.intersect(hit.getShadowRay(lightPos), shadow, true)) {
+        c = Color(0.0f, 0.0f, 0.0f);
+    }
+
+
 
     return c;
 }
