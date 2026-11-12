@@ -12,10 +12,9 @@ Ray Intersection::getReflectedRay(void) {
     Vec3 N = normal;
     const Vec3 D = ray.dir;
 
-    // TODO: Implement reflection
-    // -------------------
-    Vec3 R = D;
-    // -------------------
+
+    Vec3 R = D - 2 * (D * N) * N;
+
 
     return Ray(position, R, 0.01f, FLT_MAX);
 }
@@ -27,8 +26,13 @@ Ray Intersection::getRefractedRay(void) {
     if (!frontFacing) eta = 1.0f / eta; // Inside material.
 
     // TODO: Implement refraction
-    // -------------------
-    Vec3 R = D;
+    // ----------------
+    float r = -D * N;
+    float c = 1 - eta * eta * (1 - r * r);
+    if (c < 0)
+        return Ray(position, D - 2 * (D * N) * N, 0.01f, FLT_MAX);
+    
+    Vec3 R = eta * D + (eta * r - sqrt(c)) * N;
     // -------------------
 
     return Ray(position, R, 0.01f, FLT_MAX);

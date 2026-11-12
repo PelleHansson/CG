@@ -65,31 +65,36 @@ Color traceRay(const Ray &r, Scene scene, int depth) {
     const Vec3 lightPos(0.0f, 30.0f, -5.0f);
     Vec3 lightDir = lightPos - hit.position;
     lightDir.normalize();
-    directColor = hit.material.color;
-    c = directColor * std::max(0.0f, hit.normal * lightDir);
-   
+    directColor = hit.material.color * std::max(0.0f, hit.normal * lightDir);
+    reflectedColor = traceRay(hit.getReflectedRay(), scene, depth - 1) ;
+    if (hit.material.transparency > 0.0f) {
+        refractedColor = traceRay(hit.getRefractedRay(), scene, depth - 1) ;
+    }
+
     if (scene.intersect(hit.getShadowRay(lightPos), shadow, true)) {
-        c = Color(0.0f, 0.0f, 0.0f);
+        directColor = Color(0.0f, 0.0f, 0.0f);
     }
 
 
 
+    c = (1- hit.material.reflectivity - hit.material.transparency) * directColor + hit.material.reflectivity* reflectedColor + hit.material.transparency *refractedColor;
     return c;
 }
 
 int main() {
-    const int imageWidth = 512;
+    const int imageWidth = 1024;
     const int imageHeight = imageWidth;
     const int numChannels = 3;
     uint8_t *pixels = new uint8_t[imageWidth * imageHeight * numChannels];
 
     // Define materials
-    Material whiteDiffuse = Material(Color(0.9f, 0.9f, 0.9f), 0.0f, 0.0f, 1.0f);
-    Material greenDiffuse = Material(Color(0.1f, 0.6f, 0.1f), 0.0f, 0.0f, 1.0f);
-    Material redDiffuse = Material(Color(1.0f, 0.1f, 0.1f), 0.0f, 0.0f, 1.0f);
+    Material whiteDiffuse = Material(Color(0.9f, 0.9f, 0.9f), 0.10f, 0.0f, 1.0f);
+    Material greenDiffuse = Material(Color(0.1f, 0.6f, 0.1f), 0.1f, 0.0f, 1.0f);
+    Material redDiffuse = Material(Color(1.0f, 0.1f, 0.1f), 0.1f, 0.3f, 1.0f);
     Material blueDiffuse = Material(Color(0.0f, 0.2f, 0.9f), 0.0f, 0.0f, 1.0f);
     Material yellowReflective = Material(Color(1.0f, 0.6f, 0.1f), 0.2f, 0.0f, 1.0f);
     Material transparent = Material(Color(1.0f, 1.0f, 1.0f), 0.2f, 0.8f, 1.3f);
+    Material test = Material(Color(0.6f, 0.6f, 0.6f), 0.6f, 0.2f, 1.3f);
 
     // Setup scene
     Scene scene;
@@ -101,16 +106,16 @@ int main() {
 
     // Define vertices for Cornell box
     Vec3 vertices[] = {
-      Vec3(-20.0f, 0.0f, 50.0f),  Vec3(20.0f, 0.0f, 50.0f),    Vec3(20.0f, 0.0f, -50.0f),   // Floor 1
-      Vec3(-20.0f, 0.0f, 50.0f),  Vec3(20.0f, 0.0f, -50.0f),   Vec3(-20.0f, 0.0f, -50.0f),  // Floor 2
+      Vec3(-20.0f, 0.0f, 80.0f),  Vec3(20.0f, 0.0f, 80.0f),    Vec3(20.0f, 0.0f, -50.0f),   // Floor 1
+      Vec3(-20.0f, 0.0f, 80.0f),  Vec3(20.0f, 0.0f, -50.0f),   Vec3(-20.0f, 0.0f, -50.0f),  // Floor 2
       Vec3(-20.0f, 0.0f, -50.0f), Vec3(20.0f, 0.0f, -50.0f),   Vec3(20.0f, 40.0f, -50.0f),  // Back wall 1
       Vec3(-20.0f, 0.0f, -50.0f), Vec3(20.0f, 40.0f, -50.0f),  Vec3(-20.0f, 40.0f, -50.0f), // Back wall 2
-      Vec3(-20.0f, 40.0f, 50.0f), Vec3(-20.0f, 40.0f, -50.0f), Vec3(20.0f, 40.0f, 50.0f),   // Ceiling 1
-      Vec3(20.0f, 40.0f, 50.0f),  Vec3(-20.0f, 40.0f, -50.0f), Vec3(20.0f, 40.0f, -50.0f),  // Ceiling 2
-      Vec3(-20.0f, 0.0f, 50.0f),  Vec3(-20.0f, 40.0f, -50.0f), Vec3(-20.0f, 40.0f, 50.0f),  // Red wall 1
-      Vec3(-20.0f, 0.0f, 50.0f),  Vec3(-20.0f, 0.0f, -50.0f),  Vec3(-20.0f, 40.0f, -50.0f), // Red wall 2
-      Vec3(20.0f, 0.0f, 50.0f),   Vec3(20.0f, 40.0f, -50.0f),  Vec3(20.0f, 40.0f, 50.0f),   // Green wall 1
-      Vec3(20.0f, 0.0f, 50.0f),   Vec3(20.0f, 0.0f, -50.0f),   Vec3(20.0f, 40.0f, -50.0f)   // Green wall 2
+      Vec3(-20.0f, 40.0f, 80.0f), Vec3(-20.0f, 40.0f, -50.0f), Vec3(20.0f, 40.0f, 80.0f),   // Ceiling 1
+      Vec3(20.0f, 40.0f, 80.0f),  Vec3(-20.0f, 40.0f, -50.0f), Vec3(20.0f, 40.0f, -50.0f),  // Ceiling 2
+      Vec3(-20.0f, 0.0f, 80.0f),  Vec3(-20.0f, 40.0f, -50.0f), Vec3(-20.0f, 40.0f, 80.0f),  // Red wall 1
+      Vec3(-20.0f, 0.0f, 80.0f),  Vec3(-20.0f, 0.0f, -50.0f),  Vec3(-20.0f, 40.0f, -50.0f), // Red wall 2
+      Vec3(20.0f, 0.0f, 80.0f),   Vec3(20.0f, 40.0f, -50.0f),  Vec3(20.0f, 40.0f, 80.0f),   // Green wall 1
+      Vec3(20.0f, 0.0f, 80.0f),   Vec3(20.0f, 0.0f, -50.0f),   Vec3(20.0f, 40.0f, -50.0f)   // Green wall 2
     };
 
     // TODO: Uncomment to render floor triangles
@@ -128,12 +133,14 @@ int main() {
      scene.push(Triangle(&vertices[27], greenDiffuse)); // Green wall 2
 
     // TODO: Uncomment to render reflective spheres
-    // scene.push(Sphere(Vec3(7.0f, 3.0f, 0.0f), 3.0f, yellowReflective));
-    // scene.push(Sphere(Vec3(9.0f, 10.0f, 0.0f), 3.0f, yellowReflective));
+    scene.push(Sphere(Vec3(7.0f, 3.0f, 0.0f), 3.0f, yellowReflective));
+    scene.push(Sphere(Vec3(9.0f, 10.0f, 0.0f), 3.0f, yellowReflective));
 
     // TODO: Uncomment to render refractive spheres
-    // scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, transparent));
-    // scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, transparent));
+    scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, transparent));
+    scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, transparent));
+
+    scene.push(Sphere(Vec3(0.0f, 14.0f, 0.0f), 3.0f, test));
 
     // Setup camera
     Vec3 eye(0.0f, 10.0f, 30.0f);
@@ -147,21 +154,34 @@ int main() {
     std::cout << "Rendering... ";
 
     auto start = Clock::now();
-
+    #pragma omp parallel for
     for (int j = 0; j < imageHeight; ++j) {
         for (int i = 0; i < imageWidth; ++i) {
 
-            Color pixel;
+
+            
+            Color pixel = Color(0.0f, 0.0f, 0.0f);
+            
+            for (int x = 0; x < 3; ++x) {
+                for (int y = 0; y < 3; ++y) {
+                    float u = (float(i) + (x + uniform()) / 3.0f);
+                    float v = (float(j) + (y + uniform()) / 3.0f);
+                    Ray r = camera.getRay(u, v);
+                    pixel += traceRay(r, scene, depth) ;
+                }
+            }
+
 
             // Get center of pixel coordinate
-            float cx = ((float)i) + 0.5f;
-            float cy = ((float)j) + 0.5f;
+            //float cx = ((float)i) + 0.5f;
+            //float cy = ((float)j) + 0.5f;
 
-            // Get a ray and trace it
-            Ray r = camera.getRay(cx, cy);
-            pixel = traceRay(r, scene, depth);
+            //// Get a ray and trace it
+            //Ray r = camera.getRay(cx, cy);
+            //pixel = traceRay(r, scene, depth);
 
             // Write pixel value to image
+            pixel = pixel * (1.0f / 9.0f);
             writeColor((j * imageWidth + i) * numChannels, pixel, pixels);
         }
     }
@@ -170,20 +190,12 @@ int main() {
     const std::chrono::duration<double> time = end - start;
 
     // Save image to file
-    //stbi_write_png("out.png", imageWidth, imageHeight, numChannels, pixels, imageWidth * numChannels);
+   
     const char *filename = "out.png"; // whatever name your code already uses
 
-    int ok = stbi_write_png(filename, imageWidth, imageHeight, numChannels, pixels, imageWidth * numChannels);
-
-    if (ok) {
-        #if defined(_WIN32)
-            std::system((std::string("start \"\" \"") + filename + "\"").c_str());
-        #elif defined(__APPLE__)
-            std::system((std::string("open \"") + filename + "\"").c_str());
-        #else
-            std::system((std::string("xdg-open \"") + filename + "\"").c_str());
-        #endif
-    }
+    stbi_write_png(filename, imageWidth, imageHeight, numChannels, pixels, imageWidth * numChannels);
+    std::system((std::string("start \"\" \"") + filename + "\"").c_str());
+   
 
         // Free allocated memory
     delete[] pixels;
