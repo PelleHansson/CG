@@ -157,6 +157,7 @@ int main() {
 
     auto start = Clock::now();
 
+    #pragma omp parallel for schedule(dynamic, 10)
     for (int j = 0; j < imageHeight; ++j) {
         for (int i = 0; i < imageWidth; ++i) {
             
