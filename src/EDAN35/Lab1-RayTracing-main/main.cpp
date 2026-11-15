@@ -152,21 +152,43 @@ int main() {
     // Ray trace pixels
     int depth = 3;
     std::cout << "Rendering... ";
+    int subpixels = 4;
+    bool super_sampling = true;
 
     auto start = Clock::now();
 
     for (int j = 0; j < imageHeight; ++j) {
         for (int i = 0; i < imageWidth; ++i) {
-
+            
             Color pixel;
+            if(!super_sampling){
+                // Get center of pixel coordinate
+                float cx = ((float)i) + 0.5f;
+                float cy = ((float)j) + 0.5f;
 
-            // Get center of pixel coordinate
-            float cx = ((float)i) + 0.5f;
-            float cy = ((float)j) + 0.5f;
+                // Get a ray and trace it
+                Ray r = camera.getRay(cx, cy);
+                pixel = traceRay(r, scene, depth);
+            }else{
+                pixel = Color(0.0f, 0.0f, 0.0f);
 
-            // Get a ray and trace it
-            Ray r = camera.getRay(cx, cy);
-            pixel = traceRay(r, scene, depth);
+                for (int x = 0; x < subpixels; x++){
+                    for (int y = 0; y < subpixels; y++){
+                        // Sampled pixel coordinate
+                        float cx = ((float)i) + (x + uniform())/subpixels;
+                        float cy = ((float)j) + (y + uniform())/subpixels;
+
+                        // Get a ray and trace it
+                        Ray r = camera.getRay(cx, cy);
+                        pixel += traceRay(r, scene, depth);
+
+                    }
+                }
+
+                // Write pixel value to image
+                float divisor = (1.0f/std::pow(subpixels, 2));
+                pixel = pixel * divisor;
+            }
 
             // Write pixel value to image
             writeColor((j * imageWidth + i) * numChannels, pixel, pixels);
