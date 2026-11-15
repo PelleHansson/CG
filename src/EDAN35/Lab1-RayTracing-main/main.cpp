@@ -67,11 +67,18 @@ Color traceRay(const Ray &r, Scene scene, int depth) {
     Vec3 normal = hit.normal;
     Material material = hit.material;
     lightDir.normalize();
+    Ray shadow_ray = hit.getShadowRay(lightPos);
+    Ray reflected_ray = hit.getReflectedRay();
+    Ray refracted_ray = hit.getRefractedRay();
+    bool reflective = 0.0f < material.reflectivity;
+    bool transparent = 0.0f < material.transparency;
+    
+    if(0 < depth && reflective) reflectedColor = traceRay(reflected_ray, scene, depth - 1);
+    if(0 < depth && transparent) refractedColor = traceRay(refracted_ray, scene, depth - 1);
 
-    directColor = material.color * std::max(0.0f, normal * lightDir);
+    directColor = scene.intersect(shadow_ray, shadow) ? Color(0.0f, 0.0f, 0.0f) : material.color * std::max(0.0f, normal * lightDir);
 
-    c = directColor;
-
+    c = directColor + reflectedColor * material.reflectivity + refractedColor * material.refractiveIndex;
     return c;
 }
 
@@ -87,6 +94,7 @@ int main() {
     Material redDiffuse = Material(Color(1.0f, 0.1f, 0.1f), 0.0f, 0.0f, 1.0f);
     Material blueDiffuse = Material(Color(0.0f, 0.2f, 0.9f), 0.0f, 0.0f, 1.0f);
     Material yellowReflective = Material(Color(1.0f, 0.6f, 0.1f), 0.2f, 0.0f, 1.0f);
+    Material redReflective = Material(Color(1.0f, 0.0f, 0.0f), 0.4f, 0.0f, 1.0f);
     Material transparent = Material(Color(1.0f, 1.0f, 1.0f), 0.2f, 0.8f, 1.3f);
 
     // Setup scene
@@ -126,12 +134,13 @@ int main() {
     scene.push(Triangle(&vertices[27], greenDiffuse)); // Green wall 2
 
     // TODO: Uncomment to render reflective spheres
-    // scene.push(Sphere(Vec3(7.0f, 3.0f, 0.0f), 3.0f, yellowReflective));
-    // scene.push(Sphere(Vec3(9.0f, 10.0f, 0.0f), 3.0f, yellowReflective));
+    scene.push(Sphere(Vec3(7.0f, 3.0f, 0.0f), 3.0f, yellowReflective));
+    scene.push(Sphere(Vec3(9.0f, 10.0f, 0.0f), 3.0f, yellowReflective));
+    // scene.push(Sphere(Vec3(-7.0f, 10.0f, 0.0f), 4.0f, redReflective));
 
     // TODO: Uncomment to render refractive spheres
-    // scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, transparent));
-    // scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, transparent));
+    scene.push(Sphere(Vec3(-7.0f, 3.0f, 0.0f), 3.0f, transparent));
+    scene.push(Sphere(Vec3(-9.0f, 10.0f, 0.0f), 3.0f, transparent));
 
     // Setup camera
     Vec3 eye(0.0f, 10.0f, 30.0f);
