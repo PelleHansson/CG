@@ -28,15 +28,29 @@ void main()
 		discard;
 
 	// Diffuse color
+	
 	geometry_diffuse = vec4(0.0f);
 	if (has_diffuse_texture)
 		geometry_diffuse = texture(diffuse_texture, fs_in.texcoord);
-
+	//normal
+	geometry_normal = vec4(0.0f);
+	if (has_normals_texture)
+		geometry_normal = texture(normals_texture, fs_in.texcoord) * 2.0 - 1.0;
 	// Specular color
 	geometry_specular = vec4(0.0f);
 	if (has_specular_texture)
 		geometry_specular = texture(specular_texture, fs_in.texcoord);
 
 	// Worldspace normal
+	vec3 T = normalize(fs_in.tangent);
+	vec3 B = normalize(fs_in.binormal);
+	vec3 N = normalize(fs_in.normal);
+	mat3 tbn = mat3(T, B, N);
 	geometry_normal.xyz = vec3(0.0);
+	if (has_normals_texture){
+		vec3 normal_map = texture(normals_texture, fs_in.texcoord).rgb * 2.0 - 1.0;
+
+		N= normalize(tbn * normal_map);
+		geometry_normal = vec4(N * 0.5 + 0.5, 1.0);
+		}
 }
