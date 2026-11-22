@@ -595,6 +595,7 @@ edan35::Assignment2::run()
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::LightAccumulation)]);
 				glUseProgram(accumulate_lights_shader);
 				glViewport(0, 0, framebuffer_width, framebuffer_height);
+				glClear(GL_COLOR_BUFFER_BIT);
 				// XXX: Is any clearing needed?
 
 				glUniform1i(accumulate_light_shader_locations.light_index, static_cast<int>(i));
