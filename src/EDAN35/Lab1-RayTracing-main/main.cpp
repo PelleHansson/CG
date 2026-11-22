@@ -78,7 +78,8 @@ Color traceRay(const Ray &r, Scene scene, int depth) {
 
     directColor = scene.intersect(shadow_ray, shadow) ? Color(0.0f, 0.0f, 0.0f) : material.color * std::max(0.0f, normal * lightDir);
 
-    c = directColor + reflectedColor * material.reflectivity + refractedColor * material.refractiveIndex;
+    c = (1 - material.reflectivity - material.transparency) * directColor + reflectedColor * material.reflectivity + refractedColor * material.transparency;
+
     return c;
 }
 

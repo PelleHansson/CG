@@ -30,7 +30,7 @@ namespace constant
 
 	constexpr float  scale_lengths       = 100.0f; // The scene is expressed in centimetres rather than metres, hence the x100.
 
-	constexpr size_t lights_nb           = 4;
+	constexpr size_t lights_nb           = 8;
 	constexpr float  light_intensity     = 72.0f * (scale_lengths * scale_lengths);
 	constexpr float  light_angle_falloff = glm::radians(37.0f);
 }
