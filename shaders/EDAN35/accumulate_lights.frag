@@ -78,6 +78,6 @@ void main()
 
 	shadow = shadow/49.0f;
 
-	light_diffuse_contribution  = shadow * vec4(light * max(dot(normal, L), 0.0f), 1.0f);
-	light_specular_contribution = shadow * vec4(light * pow(max(dot(R, V), 0), 8.0f), 1.0f);
+	light_diffuse_contribution  = vec4(shadow * light * max(dot(normal, L), 0.0f), 1.0f);
+	light_specular_contribution = vec4(shadow * light * pow(max(dot(R, V), 0), 8.0f), 1.0f);
 }
