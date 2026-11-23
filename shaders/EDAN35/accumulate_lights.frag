@@ -39,12 +39,15 @@ void main()
 {
 	vec2 shadowmap_texel_size = 1.0f / textureSize(shadow_texture, 0);
 
+	//
+	// Light
+	//
 	vec2 fragcoord = gl_FragCoord.xy * inverse_screen_resolution;
 	vec3 normal = normalize(texture(normal_texture, fragcoord).rgb * 2.0f - 1.0f);
 	float depth = texture(depth_texture, fragcoord).r;
 
 	vec4 pos = camera.view_projection_inverse * (vec4(fragcoord, depth, 1.0f) * 2.0f - 1.0f);
-	vec3 frag_pos = pos.xyz/pos.w;
+	vec3 frag_pos = pos.xyz / pos.w;
 	vec3 light_vect = light_position - frag_pos;
 	float dist = length(light_vect);
 	vec3 L = normalize(light_vect);
@@ -58,6 +61,23 @@ void main()
 
 	vec3 light = light_color * light_intensity * falloff_dist * angular_falloff;
 
-	light_diffuse_contribution  = vec4(light * max(dot(normal, L), 0.0f), 1.0f);
-	light_specular_contribution = vec4(light * pow(max(dot(R, V), 0), 8.0f), 1.0f);
+	//
+	// Shadow
+	//
+	float bias = 0.000005f;
+	vec4 lightspace_pos = lights[light_index].view_projection * vec4(frag_pos, 1.0f);
+	vec3 proj_coord = (lightspace_pos.xyz / lightspace_pos.w) * 0.5f + 0.5f;
+	float shadow = 0.0f;
+
+	for(int y = -3 ; y <= 3 ; y++){
+		for(int x = -3 ; x <= 3 ; x++){
+			float pcfDepth = texture(shadow_texture, proj_coord.xy + vec2(x, y) * shadowmap_texel_size).r;
+			shadow += proj_coord.z > pcfDepth + bias ? 0.0f : 1.0f;
+		}
+	}
+
+	shadow = shadow/49.0f;
+
+	light_diffuse_contribution  = shadow * vec4(light * max(dot(normal, L), 0.0f), 1.0f);
+	light_specular_contribution = shadow * vec4(light * pow(max(dot(R, V), 0), 8.0f), 1.0f);
 }
