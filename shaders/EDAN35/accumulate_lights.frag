@@ -39,16 +39,25 @@ void main()
 {
 	vec2 shadowmap_texel_size = 1.0f / textureSize(shadow_texture, 0);
 
-	vec2 texcoord = gl_FragCoord.xy * inverse_screen_resolution;
-	vec3 normal = normalize(texture(normal_texture, texcoord).rgb * 2.0f - 1.0f);
-	float depth = texture(depth_texture, texcoord).r;
+	vec2 fragcoord = gl_FragCoord.xy * inverse_screen_resolution;
+	vec3 normal = normalize(texture(normal_texture, fragcoord).rgb * 2.0f - 1.0f);
+	float depth = texture(depth_texture, fragcoord).r;
 
-	vec4 pos = camera.view_projection_inverse * vec4(vec3(texcoord, depth), 1.0f);
-	vec3 ssp_pos = pos.xyz/pos.w;
-	vec3 L = normalize(light_position - ssp_pos);
-	vec3 V = normalize(camera_position - ssp_pos);
+	vec4 pos = camera.view_projection_inverse * (vec4(fragcoord, depth, 1.0f) * 2.0f - 1.0f);
+	vec3 frag_pos = pos.xyz/pos.w;
+	vec3 light_vect = light_position - frag_pos;
+	float dist = length(light_vect);
+	vec3 L = normalize(light_vect);
+	vec3 V = normalize(camera_position - frag_pos);
 	vec3 R = normalize(reflect(-1 * L, normal));
 
-	light_diffuse_contribution  = vec4(light_color * light_intensity * max(dot(normal, L), 0.0f), 1.0f);
-	light_specular_contribution = vec4(light_color * light_intensity * pow(max(dot(R, V), 0), 8.0f), 1.0f);
+	float falloff_dist = 1.0f / pow(dist, 2);
+	float light_angular = max(dot(-L, light_direction), 0.0f);
+	float light_angular_falloff = cos(light_angle_falloff);
+	float angular_falloff = max(light_angular / light_angular_falloff - 1.0f, 0.0f);
+
+	vec3 light = light_color * light_intensity * falloff_dist * angular_falloff;
+
+	light_diffuse_contribution  = vec4(light * max(dot(normal, L), 0.0f), 1.0f);
+	light_specular_contribution = vec4(light * pow(max(dot(R, V), 0), 8.0f), 1.0f);
 }
