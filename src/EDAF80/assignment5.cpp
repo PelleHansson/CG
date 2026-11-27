@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <random>
 #include <vector>
+#include <vector>
 
 edaf80::Assignment5::Assignment5(WindowManager& windowManager) :
 	mCamera(0.5f * glm::half_pi<float>(),
