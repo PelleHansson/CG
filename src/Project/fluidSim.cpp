@@ -111,8 +111,8 @@ void project::FluidSim::run() {
 		);
 		};
 
-	const int textureWidth = 20;
-	const int textureHeight = 20;
+	const int textureWidth = 100;
+	const int textureHeight = 100;
 	float elapsed_time_s = 0.0f;
 	std::vector<unsigned char> pixels(textureWidth * textureHeight * 4);
 
